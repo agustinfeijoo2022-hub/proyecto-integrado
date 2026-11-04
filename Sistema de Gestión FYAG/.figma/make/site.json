@@ -1,0 +1,10 @@
+{
+  "description": "Centraliza y gestiona el ciclo completo de obras y presupuestos para empresas industriales, optimizando flujos, control de estados y KPIs en tiempo real.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
