@@ -22,6 +22,7 @@ export const tecnicos: Tecnico[] = [
 
 const estados = ["Aprobado", "Aprobado", "Aprobado", "Enviado", "Borrador", "Rechazado"] as const;
 const tipos = ["Proyecto", "Mantención", "Climatización", "Proyecto eléctrico", "Emergencia", "Garantía", "Venta de repuestos", "Mejoras"] as const;
+
 export const presupuestos: Presupuesto[] = Array.from({ length: 12 }, (_, index) => {
   const cantidad = (index % 3) + 1;
   const precioUnitario = 1450000 + index * 175000;
@@ -29,7 +30,8 @@ export const presupuestos: Presupuesto[] = Array.from({ length: 12 }, (_, index)
     id: `p${index + 1}`,
     folio: `PRE-${String(2401 + index)}`,
     clienteId: `c${(index % 8) + 1}`,
-    fecha: `2025-${String((index % 6) + 1).padStart(2, "0")}-${String(4 + index).padStart(2, "0")}`,
+    // CAMBIADO A 2026
+    fecha: `2026-${String((index % 6) + 1).padStart(2, "0")}-${String(4 + index).padStart(2, "0")}`,
     estado: estados[index % estados.length],
     tipo: tipos[index % tipos.length],
     items: [{ id: `i${index + 1}`, descripcion: `Servicio de ${tipos[index % tipos.length].toLowerCase()}`, cantidad, precioUnitario }],
@@ -51,8 +53,9 @@ export const obras: Obra[] = Array.from({ length: 15 }, (_, index) => ({
   tecnicoId: index === 8 ? undefined : `t${(index % 6) + 1}`,
   estado: obraEstados[index % obraEstados.length],
   tipo: tipos[index % tipos.length],
-  fechaInicio: `2025-${String((index % 6) + 1).padStart(2, "0")}-${String(3 + (index % 20)).padStart(2, "0")}`,
-  fechaFin: index % 4 === 1 ? "2025-06-20" : undefined,
+  // CAMBIADO A 2026
+  fechaInicio: `2026-${String((index % 6) + 1).padStart(2, "0")}-${String(3 + (index % 20)).padStart(2, "0")}`,
+  fechaFin: index % 4 === 1 ? "2026-06-20" : undefined,
   avance: [68, 100, 42, 15][index % 4],
 }));
 
@@ -61,20 +64,24 @@ export const facturas: Factura[] = Array.from({ length: 10 }, (_, index) => ({
   folio: `F-${String(8801 + index)}`,
   obraId: `o${index + 1}`,
   clienteId: `c${(index % 8) + 1}`,
-  fechaEmision: `2025-0${(index % 6) + 1}-05`,
-  fechaVencimiento: `2025-0${(index % 6) + 1}-28`,
+  // CAMBIADO A 2026
+  fechaEmision: `2026-0${(index % 6) + 1}-05`,
+  fechaVencimiento: `2026-0${(index % 6) + 1}-28`,
   monto: 2200000 + index * 410000,
   estado: index < 4 ? "Pagada" : index < 7 ? "Vencida" : "Pendiente",
 }));
 
 export const pagos: Pago[] = Array.from({ length: 8 }, (_, index) => ({
   id: `pa${index + 1}`, facturaId: `f${(index % 4) + 1}`, obraId: `o${(index % 4) + 1}`,
-  fecha: `2025-0${(index % 6) + 1}-22`, monto: 1200000 + index * 250000,
+  // CAMBIADO A 2026
+  fecha: `2026-0${(index % 6) + 1}-22`, monto: 1200000 + index * 250000,
   metodo: index % 2 ? "Transferencia" : "Cheque",
 }));
 
 export const auditoria: Auditoria[] = Array.from({ length: 20 }, (_, index) => ({
-  id: `a${index + 1}`, fecha: `2025-06-${String(20 - (index % 15)).padStart(2, "0")} 10:${String(index * 3).padStart(2, "0")}`,
+  id: `a${index + 1}`, 
+  // CAMBIADO A 2026
+  fecha: `2026-11-${String(15 - (index % 10)).padStart(2, "0")} 10:${String(index * 3).padStart(2, "0")}`,
   usuario: ["Camila Gerencia", "Felipe Finanzas", "Sofía Supervisora"][index % 3],
   accion: ["Actualizó estado", "Creó registro", "Asignó técnico", "Registró pago"][index % 4],
   entidad: `${index % 2 ? "Obra" : "Presupuesto"} #${1051 + index}`,
