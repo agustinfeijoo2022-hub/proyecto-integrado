@@ -1,10 +1,11 @@
-import { RouterProvider } from "react-router";
-import { Toaster } from "sonner";
-import { router } from "@/app/routes";
+import Catalogo from '../pages/CatalogoPage';
 
-export default function App() {
-  return <>
-    <RouterProvider router={router} />
-    <Toaster position="top-right" richColors closeButton />
-  </>;
+function App() {
+  return (
+    <div>
+      <Catalogo />
+    </div>
+  )
 }
+
+export default App

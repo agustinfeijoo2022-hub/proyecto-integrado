@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import {
   Bell, BriefcaseBusiness, ChartNoAxesCombined, ChevronRight, ClipboardList,
   FileChartColumn, FileText, LogOut, Menu, Search, Snowflake, Users, WalletCards, X,
+  Package, ShoppingCart // <-- Nuevos íconos agregados
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,11 @@ import type { Rol } from "@/types";
 
 const nav: { to: string; label: string; icon: typeof ChartNoAxesCombined; roles: Rol[] }[] = [
   { to: "/dashboard", label: "Dashboard", icon: ChartNoAxesCombined, roles: ["Gerencia", "Finanzas", "Supervisor"] },
+  
+  // Rutas nuevas agregadas aquí:
+  { to: "/catalogo", label: "Catálogo", icon: Package, roles: ["Gerencia", "Supervisor"] },
+  { to: "/compras", label: "Compras", icon: ShoppingCart, roles: ["Gerencia", "Finanzas"] },
+  
   { to: "/obras", label: "Obras", icon: BriefcaseBusiness, roles: ["Gerencia", "Supervisor"] },
   { to: "/mis-obras", label: "Mis obras", icon: ClipboardList, roles: ["Técnico"] },
   { to: "/presupuestos", label: "Presupuestos", icon: FileText, roles: ["Gerencia", "Finanzas"] },
@@ -26,7 +32,9 @@ export default function AppLayout() {
   const logout = useAppStore((state) => state.logout);
   const navigate = useNavigate();
   const location = useLocation();
+  
   if (!usuario) return null;
+  
   const section = nav.find((item) => location.pathname.startsWith(item.to))?.label ?? "Detalle";
 
   const sidebar = <div className="flex h-full flex-col bg-sidebar text-white">
@@ -34,7 +42,7 @@ export default function AppLayout() {
       <div className="grid size-10 place-items-center rounded-xl bg-white/10"><Snowflake className="size-6" /></div>
       <div><div className="text-lg font-bold tracking-wide">FYAG</div><div className="text-xs text-blue-200">Gestión de obras</div></div>
     </div>
-    <nav className="flex-1 space-y-1 p-3" aria-label="Navegación principal">
+    <nav className="flex-1 space-y-1 p-3 overflow-y-auto" aria-label="Navegación principal">
       {nav.filter((item) => item.roles.includes(usuario.rol)).map((item) => {
         const Icon = item.icon;
         return <NavLink key={item.to} to={item.to} onClick={() => setOpen(false)} className={({ isActive }) => cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-blue-100 transition-colors hover:bg-white/10 hover:text-white", isActive && "bg-white/15 text-white")}>
