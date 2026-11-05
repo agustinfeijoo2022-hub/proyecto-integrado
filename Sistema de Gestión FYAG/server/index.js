@@ -22,9 +22,9 @@ const pgPool = new Pool({
 
 pgPool.connect((err) => {
   if (err) {
-    console.error('❌ Error conectando a PostgreSQL:', err.message);
+    console.error(' Error conectando a PostgreSQL:', err.message);
   } else {
-    console.log('✅ Conectado a PostgreSQL (Datos relacionales)');
+    console.log(' Conectado a PostgreSQL (Datos relacionales)');
   }
 });
 
@@ -32,8 +32,8 @@ pgPool.connect((err) => {
 // 2. CONEXIÓN A MONGODB
 // ==========================================
 mongoose.connect('mongodb://localhost:27017/fyag_logs')
-  .then(() => console.log('✅ Conectado a MongoDB (Datos no relacionales)'))
-  .catch(err => console.error('❌ Error conectando a MongoDB:', err.message));
+  .then(() => console.log(' Conectado a MongoDB (Datos no relacionales)'))
+  .catch(err => console.error(' Error conectando a MongoDB:', err.message));
 
 // ==========================================
 // 3. RUTAS DE LA API
