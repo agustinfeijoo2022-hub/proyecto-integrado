@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function Compras() {
+export default function ComprasPage() {
   const [proveedor, setProveedor] = useState('');
   const [monto, setMonto] = useState('');
   const [descuento, setDescuento] = useState('');

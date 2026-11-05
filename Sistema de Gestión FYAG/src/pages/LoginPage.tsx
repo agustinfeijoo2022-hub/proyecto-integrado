@@ -5,16 +5,15 @@ import { useAppStore } from '@/store/useAppStore';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // Para mostrar errores en pantalla
+  const [error, setError] = useState('');
   const navigate = useNavigate(); 
   
   const login = useAppStore((state) => state.login);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setError(''); // Limpiamos errores previos
+    setError('');
 
-    // Validación de los 4 usuarios de prueba
     if (email === 'gerencia@fyag.cl' && password === 'gerencia123') {
       login("Gerencia");
       navigate('/dashboard');
@@ -32,8 +31,7 @@ export default function LoginPage() {
       navigate('/dashboard');
     } 
     else {
-      // Si no coincide ninguno, mostramos error
-      setError('Correo o contraseña incorrectos. Revisa las credenciales de prueba.');
+      setError('Correo o contraseña incorrectos.');
     }
   };
 
@@ -49,37 +47,25 @@ export default function LoginPage() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
             <input 
-              type="email" 
-              required
+              type="email" required
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="usuario@fyag.cl"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={email} onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
             <input 
-              type="password" 
-              required
+              type="password" required
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={password} onChange={(e) => setPassword(e.target.value)}
             />
           </div>
 
-          {/* Mensaje de error si las credenciales fallan */}
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded text-sm text-center">
-              {error}
-            </div>
-          )}
+          {error && <div className="p-3 bg-red-50 text-red-600 rounded text-sm text-center">{error}</div>}
 
-          <button 
-            type="submit" 
-            className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
+          <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-colors">
             Ingresar al Sistema
           </button>
         </form>
