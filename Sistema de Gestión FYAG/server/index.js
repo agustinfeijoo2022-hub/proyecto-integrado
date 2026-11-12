@@ -1,60 +1,52 @@
-import express from 'express';
-import cors from 'cors';
-import { conectarPostgres } from './config/postgres.js';
-import { conectarMongo } from './config/mongo.js';
+import dotenv from 'dotenv';
+dotenv.config({ path: './.env' });
+import mongoose from "mongoose";
+import Articulo from "./models/Articulo.js";
+import { conectarMongo } from "./config/mongo.js";
+import { conectarPostgres, pool } from "./config/postgres.js";
+import { createApp } from "./app.js";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+let app;
 
-const iniciarBasesDeDatos = async () => {
-  console.log('Iniciando conexiones a bases de datos...');
+try {
+  app = createApp(Articulo);
+
+  // PostgreSQL es opcional: su inicializador informa el error sin lanzarlo.
   await conectarPostgres();
+
+  // MongoDB sigue siendo obligatorio para inventario y compras.
   await conectarMongo();
-};
+  await Articulo.init();
 
-iniciarBasesDeDatos();
-
-app.get('/api/status', (req, res) => {
-  res.json({ 
-    status: 'Online',
-    mensaje: 'Servidor de FYAG funcionando correctamente ',
-    basesDeDatos: ['PostgreSQL', 'MongoDB']
+  const port = Number(process.env.PORT || 3001);
+  const server = app.listen(port, () => {
+    console.log(`API FYAG: http://localhost:${port}`);
   });
-});
 
-let listaArticulos = [
-  { id: 1, codigo: 'REF-001', nombre: 'Compresor Copeland', categoria: 'Refrigeración', stock: 12, stockCritico: 5, unidad: 'Unidad' },
-  { id: 2, codigo: 'REF-002', nombre: 'Gas R410A', categoria: 'Insumos', stock: 3, stockCritico: 10, unidad: 'Kg' }
-];
+  let cerrando = false;
+  const cerrar = () => {
+    if (cerrando) return;
+    cerrando = true;
+    app.locals.dispose();
 
-app.get('/api/articulos', (req, res) => {
-  res.json(listaArticulos);
-});
+    const timeout = setTimeout(() => process.exit(1), 10000);
+    timeout.unref();
 
-app.post('/api/articulos', (req, res) => {
-  const { codigo, nombre, stock, categoria } = req.body;
-  
-  const nuevoArticulo = {
-    id: Date.now(), 
-    codigo,
-    nombre,
-    stock: Number(stock),
-    categoria: categoria || 'General',
-    stockCritico: 5,
-    unidad: 'Unidad'
+    server.close(async () => {
+      const resultados = await Promise.allSettled([
+        mongoose.disconnect(),
+        pool.end(),
+      ]);
+      clearTimeout(timeout);
+      process.exit(resultados.some(r => r.status === "rejected") ? 1 : 0);
+    });
   };
 
-  listaArticulos.push(nuevoArticulo);
-  console.log(" Nuevo artículo guardado en el servidor:", nuevoArticulo);
-  
-  res.status(201).json({ 
-    mensaje: 'Artículo creado exitosamente', 
-    articulo: nuevoArticulo 
-  });
-});
-
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(` Servidor Backend corriendo en http://localhost:${PORT}`);
-});
+  process.once("SIGINT", cerrar);
+  process.once("SIGTERM", cerrar);
+} catch (error) {
+  console.error("No se pudo iniciar FYAG:", error instanceof Error ? error.message : error);
+  app?.locals.dispose();
+  await Promise.allSettled([mongoose.disconnect(), pool.end()]);
+  process.exit(1);
+}

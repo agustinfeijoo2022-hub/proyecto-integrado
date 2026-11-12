@@ -7,7 +7,12 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "format": "oxfmt"
+    "format": "oxfmt",
+    "server": "node server/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test server/app.test.js server/config/postgres.test.js tests/access.test.mjs",
+    "check": "npm run typecheck && npm test && npm run build",
+    "repair:types": "node scripts/repair-router-types.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.3.1",
@@ -36,11 +41,13 @@
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^6.0.0",
     "oxfmt": "^0.2.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
     "vite": "^8.0.5"
+  },
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

@@ -19,3 +19,6 @@ logs/
 # beside it.
 /.plugins/
 /.opencode-skills/
+
+# Example contains no secrets
+!.env.example

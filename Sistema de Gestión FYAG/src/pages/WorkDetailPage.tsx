@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, useParams } from "react-router";
+import { Navigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Check, Clock3, UserRound } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
