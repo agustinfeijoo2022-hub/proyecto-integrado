@@ -10,7 +10,7 @@
     "format": "oxfmt",
     "server": "node server/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "node --test server/app.test.js server/config/postgres.test.js tests/access.test.mjs",
+    "test": "node --test server/app.test.js server/presupuestos.test.js server/config/postgres.test.js tests/access.test.mjs tests/presupuestos.test.mjs",
     "check": "npm run typecheck && npm test && npm run build",
     "repair:types": "node scripts/repair-router-types.mjs"
   },

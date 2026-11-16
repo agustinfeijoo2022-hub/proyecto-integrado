@@ -196,7 +196,7 @@ export default function AppLayout() {
               {error}
             </p>
           )}
-          {["/obras", "/presupuestos", "/cobranza", "/reportes", "/usuarios"].some(path => location.pathname === path || location.pathname.startsWith(`${path}/`)) && <p role="note" className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">Módulo de demostración: usa datos locales del MVP. Sus cambios no se guardan en el backend.</p>}
+          {["/obras", "/cobranza", "/reportes", "/usuarios"].some(path => location.pathname === path || location.pathname.startsWith(`${path}/`)) && <p role="note" className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">Módulo de demostración: usa datos locales del MVP. Sus cambios no se guardan en el backend.</p>}
           <Outlet />
         </main>
       </div>

@@ -9,6 +9,8 @@ import cors from "cors"
 
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto"
 
+import { crearRouterPresupuestos } from "./routes/presupuestos.js"
+
 const SESSION_MS = 8 * 60 * 60 * 1000
 
 const WINDOW_MS = 15 * 60 * 1000
@@ -50,7 +52,7 @@ const perfiles = [
   },
 ]
 
-export function createApp(Articulo, env = process.env) {
+export function createApp(Articulo, env = process.env, Presupuesto) {
   const app = express()
 
   app.disable("x-powered-by")
@@ -383,6 +385,10 @@ export function createApp(Articulo, env = process.env) {
         })
     },
   )
+
+  // El módulo de presupuestos se activa solo si se le entrega su modelo (así las pruebas de inventario no lo necesitan).
+  if (Presupuesto)
+    app.use("/api/presupuestos", crearRouterPresupuestos(Presupuesto, permitir))
 
   app.use((_req, res) =>
     res.status(404).json({ error: "Endpoint no encontrado." }),

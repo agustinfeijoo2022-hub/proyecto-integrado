@@ -28,6 +28,9 @@ export interface Presupuesto {
   estado: EstadoPresupuesto;
   tipo: TipoServicio;
   items: ItemPresupuesto[];
+  // Los presupuestos de la API traen neto e IVA; los de demostración solo el total.
+  neto?: number;
+  iva?: number;
   total: number;
 }
 

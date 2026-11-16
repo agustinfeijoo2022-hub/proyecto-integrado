@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './.env' });
 import mongoose from "mongoose";
 import Articulo from "./models/Articulo.js";
+import Presupuesto from "./models/Presupuesto.js";
 import { conectarMongo } from "./config/mongo.js";
 import { conectarPostgres, pool } from "./config/postgres.js";
 import { createApp } from "./app.js";
@@ -9,7 +10,7 @@ import { createApp } from "./app.js";
 let app;
 
 try {
-  app = createApp(Articulo);
+  app = createApp(Articulo, process.env, Presupuesto);
 
   // PostgreSQL es opcional: su inicializador informa el error sin lanzarlo.
   await conectarPostgres();
@@ -17,6 +18,7 @@ try {
   // MongoDB sigue siendo obligatorio para inventario y compras.
   await conectarMongo();
   await Articulo.init();
+  await Presupuesto.init();
 
   const port = Number(process.env.PORT || 3001);
   const server = app.listen(port, () => {

@@ -1,3 +1,5 @@
+import type { EstadoPresupuesto, ItemPresupuesto, Presupuesto, TipoServicio } from "@/types"
+
 export interface Articulo {
   _id: string
 
@@ -125,4 +127,37 @@ export async function obtenerCompras(signal?: AbortSignal): Promise<Compra[]> {
     throw new Error("La API devolvió un historial de compras con formato incorrecto.");
   }
   return data;
+}
+
+const esPresupuesto = (p: unknown): p is Presupuesto => {
+  const x = p as Presupuesto;
+  return !!x && typeof x.id === "string" && typeof x.folio === "string" && typeof x.clienteId === "string"
+    && typeof x.estado === "string" && typeof x.tipo === "string" && Array.isArray(x.items)
+    && Number.isFinite(x.neto) && Number.isFinite(x.iva) && Number.isFinite(x.total)
+    && Number.isFinite(Date.parse(x.fecha));
+};
+
+export async function obtenerPresupuestos(signal?: AbortSignal): Promise<Presupuesto[]> {
+  const data = await api<Presupuesto[]>("/presupuestos", { signal });
+  if (!Array.isArray(data) || !data.every(esPresupuesto)) throw new Error("La API devolvió un listado de presupuestos con formato incorrecto.");
+  return data;
+}
+
+export interface NuevoPresupuesto {
+  clienteId: string;
+  tipo: TipoServicio;
+  estado: Extract<EstadoPresupuesto, "Borrador" | "Enviado">;
+  items: Omit<ItemPresupuesto, "id">[];
+}
+
+export async function crearPresupuesto(datos: NuevoPresupuesto): Promise<Presupuesto> {
+  const data = await api<{ presupuesto: Presupuesto }>("/presupuestos", { method: "POST", body: JSON.stringify(datos) });
+  if (!esPresupuesto(data?.presupuesto)) throw new Error("La API devolvió un presupuesto con formato incorrecto.");
+  return data.presupuesto;
+}
+
+export async function cambiarEstadoPresupuesto(id: string, estado: Exclude<EstadoPresupuesto, "Borrador">): Promise<Presupuesto> {
+  const data = await api<{ presupuesto: Presupuesto }>(`/presupuestos/${encodeURIComponent(id)}/estado`, { method: "PATCH", body: JSON.stringify({ estado }) });
+  if (!esPresupuesto(data?.presupuesto)) throw new Error("La API devolvió un presupuesto con formato incorrecto.");
+  return data.presupuesto;
 }
