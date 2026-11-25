@@ -3,6 +3,7 @@ import test from "node:test"
 import assert from "node:assert/strict"
 
 import { createApp } from "./app.js"
+import { obrasController } from "./controllers/obrasController.js"
 
 import { IncomingMessage, ServerResponse } from "node:http"
 
@@ -46,7 +47,7 @@ const model = {
     update = { query, changes }
     return query.codigo === "NO"
       ? null
-      : { ...articulo, stock: articulo.stock + changes.$inc.stock }
+      : { ...articulo, stock: articulo.stock + (changes.$inc?.stock ?? 0) }
   },
 }
 
@@ -109,7 +110,7 @@ test("API: sesión, roles, validación y escritura de inventario", async (t) => 
     const res = await req("/auth/login", "POST", { email, password })
     assert.equal(res.status, 200)
     assert.match(res.headers.get("set-cookie"), /HttpOnly/i)
-    assert.match(res.headers.get("set-cookie"), /SameSite=Strict/i)
+    assert.match(res.headers.get("set-cookie"), /SameSite=Lax/i)
     return res.headers.get("set-cookie").split(";")[0]
   }
 
@@ -177,7 +178,7 @@ test("API: sesión, roles, validación y escritura de inventario", async (t) => 
   const finanzas = await login("finanzas@fyag.cl", env.FYAG_FINANZAS_PASSWORD)
 
   const supervisor = await login(
-    "supervisor@fyag.cl",
+    "bodega@fyag.cl",
     env.FYAG_SUPERVISOR_PASSWORD,
   )
 
@@ -283,7 +284,7 @@ test("API: sesión, roles, validación y escritura de inventario", async (t) => 
   })
 
   await t.test(
-    "compra: cálculo en servidor y operación atómica $inc + $push",
+    "compra: cálculo en servidor y stock pendiente de recepción",
     async () => {
       const res = await req(
         "/compras",
@@ -302,9 +303,10 @@ test("API: sesión, roles, validación y escritura de inventario", async (t) => 
       assert.equal(res.status, 201)
       const data = await res.json()
       assert.equal(data.total, 107100)
-      assert.equal(data.articulo.stock, 12.5)
+      assert.equal(data.articulo.stock, 10)
 
-      assert.equal(update.changes.$inc.stock, 2.5)
+      assert.equal(update.changes.$inc, undefined)
+      assert.equal(update.changes.$push.compras.recibida, false)
       assert.equal(update.changes.$push.compras.total, 107100)
       assert.equal(update.changes.$push.compras.usuarioId, "u2")
 
@@ -330,11 +332,22 @@ test("API: sesión, roles, validación y escritura de inventario", async (t) => 
   });
 
   await t.test("historial de compras restringido y respuesta disponible", async () => {
-    for (const cookie of [tecnico, supervisor]) assert.equal((await req("/compras", "GET", undefined, cookie)).status, 403);
-    for (const cookie of [gerente, finanzas]) {
+    assert.equal((await req("/compras", "GET", undefined, tecnico)).status, 403);
+    for (const cookie of [gerente, finanzas, supervisor]) {
       const res = await req("/compras", "GET", undefined, cookie);
       assert.equal(res.status, 200);
       assert.equal((await res.json())[0].id, "compra-1");
+    }
+  });
+
+  await t.test("reporte financiero y denegación de escritura por todos los verbos", async () => {
+    for (const cookie of [gerente, finanzas, supervisor]) assert.equal((await req("/reportes/finanzas", "GET", undefined, cookie)).status, 200);
+    assert.equal((await req("/reportes/finanzas", "GET", undefined, tecnico)).status, 403);
+    for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+      for (const path of ["/articulos", "/articulos/123", "/compras", "/compras/123"]) {
+        assert.equal((await req(path, method, { rol: "Supervisor" }, gerente)).status, 403);
+        assert.equal((await req(path, method, { rol: "Finanzas" }, tecnico)).status, 403);
+      }
     }
   });
 
@@ -352,3 +365,54 @@ test("API: sesión, roles, validación y escritura de inventario", async (t) => 
     )
   })
 })
+
+test("workflow de obras valida transiciones y registra el avance final", async () => {
+  const casos = [
+    ["En proceso", "Suspendida", "t1", true, 200],
+    ["Suspendida", "En proceso", "t1", true, 200],
+    ["Suspendida", "En proceso", "t1", false, 409],
+    ["Suspendida", "Cancelada", "t1", true, 200],
+    ["Suspendida", "Finalizada", "t1", true, 409],
+    ["En proceso", "Cierre comercial", "t1", true, 409],
+    ["En proceso", "Finalizada", null, true, 409],
+    ["En proceso", "Finalizada", "t1", true, 200],
+    ["Finalizada", "Cierre comercial", "t1", true, 200],
+    ["Finalizada", "Cancelada", "t1", true, 409],
+    ["Cancelada", "Finalizada", "t1", true, 409],
+    ["Cierre comercial", "En proceso", "t1", true, 409],
+    ["Cierre comercial", "Cierre comercial", "t1", true, 200],
+  ];
+  for (const [origen, destino, tecnico, aprobado, esperado] of casos) {
+    const obra = { id: 1, estado: origen, tecnico_id: tecnico, avance: 30, presupuesto_id: 1 };
+    const operaciones = [];
+    const db = {
+      async query(sql, params) {
+        operaciones.push(sql);
+        if (sql.includes("FOR UPDATE")) return { rows: [obra] };
+        if (sql.includes("FROM pagos") || sql.includes("FROM facturas")) return { rowCount: 0 };
+        if (sql.includes("FOR SHARE")) return { rowCount: aprobado ? 1 : 0 };
+        if (sql.startsWith("UPDATE")) {
+          const [avance, estado, , , historial] = params;
+          return { rows: [{ ...obra, estado, avance: avance ?? obra.avance, historial: JSON.parse(historial) }] };
+        }
+      },
+      release() {},
+    };
+    let codigo = 200;
+    let resultado;
+    const respuesta = {
+      status(n) { codigo = n; return this; },
+      json(datos) { resultado = datos; },
+    };
+    const controlador = obrasController({ connect: async () => db }, {}, []);
+    await controlador.actualizar({ params: { id: "1" }, body: { estado: destino } }, respuesta, error => { throw error; });
+    assert.equal(codigo, esperado, `${origen} → ${destino}`);
+    assert.equal(operaciones.some(sql => sql.startsWith("UPDATE")), esperado === 200);
+    assert.equal(operaciones.at(-1), esperado === 200 ? "COMMIT" : "ROLLBACK");
+    if (esperado === 200) {
+      assert.equal(resultado.estado, destino);
+      if (destino === "Finalizada") assert.equal(resultado.avance, 100);
+      if (destino === "Cancelada" || destino === "Cierre comercial") assert.deepEqual(resultado.transiciones_disponibles, []);
+    }
+  }
+});

@@ -1,109 +1,53 @@
-import type { EstadoPresupuesto, ItemPresupuesto, Presupuesto, TipoServicio } from "@/types"
+import type { CambiosObra, ObraDB } from "@/types";
 
 export interface Articulo {
-  _id: string
-
-  codigo: string
-
-  nombre: string
-
-  categoria: string
-
-  stock: number
-
-  stockCritico: number
-
-  unidad: string
+  _id: string;
+  codigo: string;
+  nombre: string;
+  categoria: string;
+  stock: number;
+  stockCritico: number;
+  unidad: string;
 }
 
-const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:3001/api"
-).replace(/\/$/, "")
+const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3001/api").replace(/\/$/, "");
 
 export class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-  ) {
-    super(message)
+  constructor(message: string, public status: number) {
+    super(message);
   }
 }
 
-export async function api<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const headers = new Headers(options.headers)
+export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (options.body) headers.set("Content-Type", "application/json");
 
-  if (options.body) headers.set("Content-Type", "application/json")
-
-  let response: Response
-
+  let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
-      ...options,
-      headers,
-      credentials: "include",
-    })
+    response = await fetch(`${API_URL}${path}`, { ...options, headers, credentials: "include" });
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError")
-      throw error
-
-    throw new Error(
-      "No se pudo conectar con la API. Comprueba que el servidor esté iniciado.",
-    )
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    throw new Error("No se pudo conectar con la API. Comprueba que el servidor esté iniciado.");
   }
 
-  const raw = await response.text()
-
-  let data: unknown
-
-  try {
-    data = raw ? JSON.parse(raw) : undefined
-  } catch {
-    throw new ApiError(
-      "El servidor devolvió una respuesta no válida.",
-      response.status,
-    )
+  const raw = await response.text();
+  let data: unknown;
+  try { data = raw ? JSON.parse(raw) : undefined; } catch {
+    throw new ApiError("El servidor devolvió una respuesta no válida.", response.status);
   }
 
   if (!response.ok) {
-    const message =
-      data && typeof data === "object" && "error" in data
-        ? String(data.error)
-        : `Error HTTP ${response.status}`
-
-    if (response.status === 401)
-      window.dispatchEvent(new Event("fyag:session-expired"))
-
-    throw new ApiError(message, response.status)
+    const message = data && typeof data === "object" && "error" in data ? String(data.error) : `Error HTTP ${response.status}`;
+    if (response.status === 401) window.dispatchEvent(new Event("fyag:session-expired"));
+    throw new ApiError(message, response.status);
   }
-
-  return data as T
+  return data as T;
 }
 
-export const mensajeError = (error: unknown) =>
-  error instanceof Error ? error.message : "Ha ocurrido un error inesperado."
+export const mensajeError = (error: unknown) => error instanceof Error ? error.message : "Ha ocurrido un error inesperado.";
 
 export async function obtenerArticulos(signal?: AbortSignal) {
-  const data = await api<Articulo[]>("/articulos", { signal })
-
-  if (
-    !Array.isArray(data) ||
-    data.some(
-      (a) =>
-        !a ||
-        typeof a._id !== "string" ||
-        typeof a.codigo !== "string" ||
-        typeof a.nombre !== "string" ||
-        !Number.isFinite(a.stock) ||
-        !Number.isFinite(a.stockCritico),
-    )
-  ) {
-    throw new Error("La API devolvió un catálogo con formato incorrecto.")
-  }
-
-  return data
+  return api<Articulo[]>("/articulos", { signal });
 }
 
 export interface Compra {
@@ -120,44 +64,41 @@ export interface Compra {
   iva: number;
   total: number;
   fecha: string;
+  recibida: boolean | null;
+  cantidadRecibida?: number;
 }
+
 export async function obtenerCompras(signal?: AbortSignal): Promise<Compra[]> {
-  const data = await api<Compra[]>("/compras", { signal });
-  if (!Array.isArray(data) || data.some(c => !c || typeof c.id !== "string" || typeof c.proveedor !== "string" || !Number.isFinite(c.total) || !Number.isFinite(c.cantidad) || !Number.isFinite(Date.parse(c.fecha)))) {
-    throw new Error("La API devolvió un historial de compras con formato incorrecto.");
-  }
-  return data;
+  return api<Compra[]>("/compras", { signal });
 }
 
-const esPresupuesto = (p: unknown): p is Presupuesto => {
-  const x = p as Presupuesto;
-  return !!x && typeof x.id === "string" && typeof x.folio === "string" && typeof x.clienteId === "string"
-    && typeof x.estado === "string" && typeof x.tipo === "string" && Array.isArray(x.items)
-    && Number.isFinite(x.neto) && Number.isFinite(x.iva) && Number.isFinite(x.total)
-    && Number.isFinite(Date.parse(x.fecha));
-};
-
-export async function obtenerPresupuestos(signal?: AbortSignal): Promise<Presupuesto[]> {
-  const data = await api<Presupuesto[]>("/presupuestos", { signal });
-  if (!Array.isArray(data) || !data.every(esPresupuesto)) throw new Error("La API devolvió un listado de presupuestos con formato incorrecto.");
-  return data;
+export interface PresupuestoDB {
+  id: number;
+  folio: string;
+  cliente_id: string;
+  cliente_nombre?: string | null;
+  fecha: string;
+  tipo: string;
+  total: number;
+  estado: string;
 }
 
-export interface NuevoPresupuesto {
-  clienteId: string;
-  tipo: TipoServicio;
-  estado: Extract<EstadoPresupuesto, "Borrador" | "Enviado">;
-  items: Omit<ItemPresupuesto, "id">[];
+export async function obtenerPresupuestos(): Promise<PresupuestoDB[]> {
+  return api<PresupuestoDB[]>("/presupuestos");
+}
+export async function crearPresupuesto(data: Omit<PresupuestoDB, "id">) {
+  return api<PresupuestoDB>("/presupuestos", { method: "POST", body: JSON.stringify(data) });
+}
+export async function actualizarEstadoPresupuesto(id: number, estado: string) {
+  return api<PresupuestoDB>(`/presupuestos/${id}`, { method: "PATCH", body: JSON.stringify({ estado }) });
 }
 
-export async function crearPresupuesto(datos: NuevoPresupuesto): Promise<Presupuesto> {
-  const data = await api<{ presupuesto: Presupuesto }>("/presupuestos", { method: "POST", body: JSON.stringify(datos) });
-  if (!esPresupuesto(data?.presupuesto)) throw new Error("La API devolvió un presupuesto con formato incorrecto.");
-  return data.presupuesto;
+export async function obtenerObras(): Promise<ObraDB[]> {
+  return api<ObraDB[]>("/obras");
 }
-
-export async function cambiarEstadoPresupuesto(id: string, estado: Exclude<EstadoPresupuesto, "Borrador">): Promise<Presupuesto> {
-  const data = await api<{ presupuesto: Presupuesto }>(`/presupuestos/${encodeURIComponent(id)}/estado`, { method: "PATCH", body: JSON.stringify({ estado }) });
-  if (!esPresupuesto(data?.presupuesto)) throw new Error("La API devolvió un presupuesto con formato incorrecto.");
-  return data.presupuesto;
+export async function crearObra(data: Omit<ObraDB, "id" | "avance">) {
+  return api<ObraDB>("/obras", { method: "POST", body: JSON.stringify(data) });
+}
+export async function actualizarObraApi(id: number, cambios: CambiosObra) {
+  return api<ObraDB>(`/obras/${id}`, { method: "PATCH", body: JSON.stringify(cambios) });
 }

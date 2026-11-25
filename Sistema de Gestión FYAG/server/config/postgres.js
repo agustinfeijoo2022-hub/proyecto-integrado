@@ -32,7 +32,7 @@ export async function conectarPostgres(dbPool = pool, logger = console) {
     return true;
   } catch (error) {
     const mensaje = error instanceof Error ? error.message : "Error desconocido";
-    logger.warn("⚠️ [PostgreSQL] No se pudo inicializar la conexión o la tabla auditoria. El servidor continuará utilizando MongoDB:", mensaje);
+    logger.warn("⚠️ [PostgreSQL] No se pudo inicializar la conexión o la tabla auditoria. El inicio se cancelará:", mensaje);
     return false;
   } finally {
     if (cliente) cliente.release();

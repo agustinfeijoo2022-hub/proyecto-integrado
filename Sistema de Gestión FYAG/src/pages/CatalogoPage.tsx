@@ -1,341 +1,166 @@
-import { useEffect, useState, type FormEvent } from "react"
-
-import * as Dialog from "@radix-ui/react-dialog"
-
-import { Package, Plus, Search, X } from "lucide-react"
-
-import { api, obtenerArticulos, mensajeError, type Articulo } from "@/lib/api"
-
+import { useState, useEffect } from "react";
+import { Download, PackageOpen, Package, Plus, Search, FileSpreadsheet } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAppStore } from "@/store/useAppStore";
-
-const inicial = {
-  codigo: "",
-  nombre: "",
-  categoria: "General",
-  stock: "0",
-  stockCritico: "5",
-  unidad: "Unidad",
-}
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Field, Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { generarPDF } from "@/lib/pdfGenerator";
+import { generarExcel } from "@/lib/excelGenerator";
+import { api, mensajeError, obtenerArticulos, type Articulo } from "@/lib/api";
 
 export default function CatalogoPage() {
+  const [catalogos, setCatalogos] = useState<Articulo[]>([]);
   const rol = useAppStore(state => state.usuario?.rol);
-  const puedeCrear = rol === "Supervisor";
-  const [articulos, setArticulos] = useState<Articulo[]>([])
+  const [abierto, setAbierto] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  const [categoria, setCategoria] = useState("");
+  const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState("");
+  const [intento, setIntento] = useState(0);
+  const [guardando, setGuardando] = useState(false);
 
-  const [busqueda, setBusqueda] = useState("")
-
-  const [cargando, setCargando] = useState(true)
-
-  const [error, setError] = useState("")
-
-  const [intento, setIntento] = useState(0)
-
-  const [open, setOpen] = useState(false)
-
-  const [form, setForm] = useState(inicial)
-
-  const [guardando, setGuardando] = useState(false)
-
-  const [errorModal, setErrorModal] = useState("")
-
-  const [mensaje, setMensaje] = useState("")
+  const crear = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setGuardando(true);
+    try {
+      const campos = Object.fromEntries(new FormData(event.currentTarget));
+      const { articulo } = await api<{ articulo: Articulo }>("/articulos", { method: "POST", body: JSON.stringify(campos) });
+      setCatalogos(items => [...items, articulo].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
+      setAbierto(false);
+      toast.success("Artículo creado.");
+    } catch (error) { toast.error(mensajeError(error)); }
+    finally { setGuardando(false); }
+  };
 
   useEffect(() => {
-    const c = new AbortController()
-    setCargando(true)
-    setError("")
+    const controller = new AbortController();
+    setCargando(true);
+    setErrorCarga("");
+    obtenerArticulos(controller.signal)
+      .then(setCatalogos)
+      .catch(error => { if (!controller.signal.aborted) setErrorCarga(mensajeError(error)); })
+      .finally(() => { if (!controller.signal.aborted) setCargando(false); });
+    return () => controller.abort();
+  }, [intento]);
 
-    obtenerArticulos(c.signal)
-      .then(setArticulos)
-      .catch((err) => {
-        if (!c.signal.aborted) setError(mensajeError(err))
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setCargando(false)
-      })
+  const categorias = [...new Set(catalogos.map(item => item.categoria || "General"))].sort((a, b) => a.localeCompare(b, "es"));
+  const normalizar = (texto: string) => texto.toLocaleLowerCase("es").normalize("NFD").replace(/\p{Diacritic}/gu, "");
+  const consulta = normalizar(busqueda.trim());
+  const visibles = catalogos.filter(item =>
+    (!categoria || (item.categoria || "General") === categoria) &&
+    normalizar(`${item.codigo} ${item.nombre}`).includes(consulta),
+  );
 
-    return () => c.abort()
-  }, [intento])
+  const datos = () => ({
+    columnas: ["Código", "Nombre", "Categoría", "Stock", "Unidad"],
+    filas: catalogos.map((c) => [
+      c.codigo, c.nombre, c.categoria || "—", c.stock ?? 0, c.unidad || "Unidad",
+    ]),
+  });
 
-  function cambiarModal(value: boolean) {
-    if (guardando || !puedeCrear) return
-
-    setOpen(value)
-    setErrorModal("")
-
-    if (value) {
-      setForm(inicial)
-      setMensaje("")
-    }
-  }
-
-  async function guardar(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (guardando || !puedeCrear) return
-
-    const stock = Number(form.stock),
-      stockCritico = Number(form.stockCritico)
-
-    if (
-      !form.codigo.trim() ||
-      !form.nombre.trim() ||
-      !form.categoria.trim() ||
-      !form.unidad.trim() ||
-      !Number.isFinite(stock) ||
-      stock < 0 ||
-      !Number.isFinite(stockCritico) ||
-      stockCritico < 0
-    ) {
-      setErrorModal("Completa los campos y usa cantidades no negativas.")
-      return
-    }
-
-    setGuardando(true)
-    setErrorModal("")
-
+  const exportar = async (formato: "pdf" | "excel") => {
+    const { columnas, filas } = datos();
     try {
-      const { articulo } = await api<{ articulo: Articulo }>("/articulos", {
-        method: "POST",
-        body: JSON.stringify({
-          ...form,
-          codigo: form.codigo.trim(),
-          nombre: form.nombre.trim(),
-          categoria: form.categoria.trim(),
-          unidad: form.unidad.trim(),
-          stock,
-          stockCritico,
-        }),
-      })
-
-      setArticulos((prev) =>
-        [...prev, articulo].sort((a, b) => a.nombre.localeCompare(b.nombre)),
-      )
-
-      setOpen(false)
-      setMensaje("Artículo creado correctamente.")
-    } catch (err) {
-      setErrorModal(mensajeError(err))
-    } finally {
-      setGuardando(false)
+      if (formato === "pdf") generarPDF("Catálogo de productos", columnas, filas, "catalogos");
+      else await generarExcel("Catálogo de productos", columnas, filas, "catalogos");
+    } catch {
+      toast.error("No se pudo exportar el catálogo.");
     }
-  }
-
-  const texto = busqueda.trim().toLocaleLowerCase("es")
-
-  const filtrados = articulos.filter((a) =>
-    `${a.nombre} ${a.codigo} ${a.categoria}`
-      .toLocaleLowerCase("es")
-      .includes(texto),
-  )
+  };
 
   return (
-    <div className="fyag-page">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-900">
-            Inventario
-          </p>
-          <h1 className="fyag-title mt-2">Catálogo de artículos</h1>
-          <p className="fyag-subtitle">
-            Consulta existencias y administra tus materiales.
-          </p>
+    <div className="space-y-6">
+      <header className="relative overflow-hidden rounded-3xl border border-teal-200 bg-teal-50 px-6 py-8 dark:border-teal-900 dark:bg-teal-950/50 sm:px-9">
+        <Package className="pointer-events-none absolute -right-5 -top-7 hidden size-48 -rotate-12 text-teal-700/5 dark:text-teal-300/10 sm:block" aria-hidden="true" />
+        <div className="relative flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <h1 className="text-4xl font-semibold tracking-tight text-teal-950 dark:text-teal-50">Catálogo de productos</h1>
+            <p className="mt-2 text-sm text-teal-800 dark:text-teal-200">Consulta códigos, unidades y existencias por artículo.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(rol === "Finanzas" || rol === "Encargado de Bodega") && (
+              <>
+                <Button variant="outline"
+                  onClick={() => void exportar("excel")}
+                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+                  <FileSpreadsheet className="size-4 mr-1" /> Excel
+                </Button>
+                <Button variant="outline"
+                  onClick={() => void exportar("pdf")}>
+                  <Download className="size-4 mr-1" /> PDF
+                </Button>
+              </>
+            )}
+            {rol === "Encargado de Bodega" && (
+              <Dialog open={abierto} onOpenChange={setAbierto}>
+                <DialogTrigger asChild><Button><Plus className="size-4 mr-1" /> Nuevo ítem</Button></DialogTrigger>
+                <DialogContent>
+                  <DialogTitle>Nuevo artículo</DialogTitle>
+                  <DialogDescription>Identifica el artículo con el código que usará la bodega.</DialogDescription>
+                  <form className="grid gap-3" onSubmit={crear}>
+                    <Field label="Código"><Input name="codigo" required maxLength={160} /></Field>
+                    <Field label="Nombre"><Input name="nombre" required maxLength={160} /></Field>
+                    <Field label="Categoría"><Input name="categoria" defaultValue="General" required maxLength={160} /></Field>
+                    <Field label="Unidad"><Input name="unidad" defaultValue="Unidad" required maxLength={160} /></Field>
+                    <Button disabled={guardando} type="submit">Guardar artículo</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </div>
-        {puedeCrear && <button className="fyag-button" onClick={() => cambiarModal(true)}>
-          <Plus className="size-4" /> Nuevo Artículo
-        </button>}
       </header>
-      {rol === "Gerencia" && <p role="note" className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900">Modo lectura: puedes consultar el catálogo. La creación de artículos corresponde a Supervisor.</p>}
-      {mensaje && (
-        <p
-          role="status"
-          className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
-        >
-          {mensaje}
-        </p>
-      )}
-      <section className="fyag-card overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b p-5">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Package className="size-5 text-blue-900" />
-            Artículos{" "}
-            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500">
-              {cargando || error ? "—" : articulos.length}
-            </span>
-          </div>
-          <div className="relative w-full sm:max-w-sm">
-            <Search className="absolute left-3 top-3 size-4 text-slate-400" />
-            <label htmlFor="buscar" className="sr-only">
-              Buscar artículos
-            </label>
-            <input
-              id="buscar"
-              className="fyag-input pl-10"
-              placeholder="Buscar nombre, código o categoría…"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-            />
-          </div>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <label className="min-w-0 flex-1 text-sm font-medium">
+          Buscar producto
+          <span className="relative mt-1 block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input className="pl-9" placeholder="Nombre o código" value={busqueda} onChange={event => setBusqueda(event.target.value)} />
+          </span>
+        </label>
+        <label className="text-sm font-medium sm:w-64">
+          Categoría
+          <select className="fyag-input mt-1" value={categoria} onChange={event => setCategoria(event.target.value)}>
+            <option value="">Todas las categorías</option>
+            {categorias.map(item => <option key={item}>{item}</option>)}
+          </select>
+        </label>
+      </div>
+      {cargando ? <p role="status" className="text-sm text-muted-foreground">Cargando catálogo…</p> : errorCarga ? (
+        <p role="alert" className="fyag-error">{errorCarga} <button className="underline" onClick={() => setIntento(i => i + 1)}>Reintentar</button></p>
+      ) : !visibles.length ? (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-4 py-12 text-center text-muted-foreground">
+          <PackageOpen className="size-8" aria-hidden="true" />
+          <p>{catalogos.length ? "No hay productos que coincidan con los filtros." : "Todavía no hay productos registrados."}</p>
         </div>
-        {cargando ? (
-          <p role="status" className="p-12 text-center text-slate-500">
-            Cargando catálogo…
-          </p>
-        ) : error ? (
-          <div className="space-y-4 p-6">
-            <p role="alert" className="fyag-error">
-              {error}
-            </p>
-            <button
-              className="fyag-secondary"
-              onClick={() => setIntento((i) => i + 1)}
-            >
-              Reintentar
-            </button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full whitespace-nowrap text-left text-sm">
-              <caption className="sr-only">Existencias del catálogo</caption>
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  {[
-                    "Código",
-                    "Artículo",
-                    "Categoría",
-                    "Existencias",
-                    "Estado",
-                  ].map((h) => (
-                    <th scope="col" key={h} className="px-6 py-4 font-semibold">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filtrados.map((a) => (
-                  <tr key={a._id} className="hover:bg-slate-50/70">
-                    <td className="px-6 py-5 font-mono text-xs text-slate-500">
-                      {a.codigo}
-                    </td>
-                    <td className="px-6 py-5 font-semibold text-slate-800">
-                      {a.nombre}
-                    </td>
-                    <td className="px-6 py-5 text-slate-500">{a.categoria}</td>
-                    <td className="px-6 py-5 font-semibold">
-                      {a.stock.toLocaleString("es-CL")}{" "}
-                      <span className="font-normal text-slate-400">
-                        {a.unidad}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          a.stock <= a.stockCritico
-                            ? "bg-amber-50 text-amber-800"
-                            : "bg-emerald-50 text-emerald-800"
-                        }`}
-                      >
-                        {a.stock <= a.stockCritico
-                          ? "Stock crítico"
-                          : "Disponible"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {!filtrados.length && (
-                  <tr>
-                    <td colSpan={5} className="p-12 text-center text-slate-500">
-                      {articulos.length
-                        ? "No hay coincidencias con tu búsqueda."
-                        : puedeCrear ? "Todavía no hay artículos. Crea el primero." : "Todavía no hay artículos registrados."}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-      {puedeCrear && <Dialog.Root open={open} onOpenChange={cambiarModal}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-950/65 backdrop-blur-sm" />
-          <Dialog.Content
-            onEscapeKeyDown={(e) => {
-              if (guardando) e.preventDefault()
-            }}
-            onPointerDownOutside={(e) => {
-              if (guardando) e.preventDefault()
-            }}
-            className="fixed left-1/2 top-1/2 z-50 max-h-[90dvh] w-[calc(100%_-_2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
-          >
-            <Dialog.Title className="pr-8 text-2xl font-bold text-slate-900">
-              Nuevo artículo
-            </Dialog.Title>
-            <Dialog.Description className="mt-2 text-sm leading-6 text-slate-500">
-              Registra un material y define su nivel mínimo de existencias.
-            </Dialog.Description>
-            <Dialog.Close
-              disabled={guardando}
-              aria-label="Cerrar formulario"
-              className="absolute right-5 top-5 rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-            >
-              <X className="size-5" />
-            </Dialog.Close>
-            <form onSubmit={guardar} className="mt-6 space-y-5">
-              <fieldset
-                disabled={guardando}
-                className="grid gap-4 sm:grid-cols-2"
-              >
-                {([
-                  ["codigo", "Código", "text"],
-                  ["nombre", "Nombre del artículo", "text"],
-                  ["categoria", "Categoría", "text"],
-                  ["unidad", "Unidad de medida", "text"],
-                  ["stock", "Stock inicial", "number"],
-                  ["stockCritico", "Stock crítico", "number"],
-                ] as const).map(([key, label, type]) => (
-                  <div key={key}>
-                    <label htmlFor={`art-${key}`} className="fyag-label">
-                      {label}
-                    </label>
-                    <input
-                      id={`art-${key}`}
-                      required
-                      type={type}
-                      min={type === "number" ? 0 : undefined}
-                      step={type === "number" ? "any" : undefined}
-                      maxLength={type === "text" ? 160 : undefined}
-                      className="fyag-input"
-                      value={form[key]}
-                      onChange={(e) =>
-                        setForm((prev) => ({ ...prev, [key]: e.target.value }))
-                      }
-                    />
-                  </div>
-                ))}
-              </fieldset>
-              {errorModal && (
-                <p role="alert" className="fyag-error">
-                  {errorModal}
-                </p>
-              )}
-              <div className="flex justify-end gap-3 border-t pt-5">
-                <button
-                  type="button"
-                  disabled={guardando}
-                  className="fyag-secondary"
-                  onClick={() => cambiarModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button disabled={guardando} className="fyag-button">
-                  {guardando ? "Guardando…" : "Guardar artículo"}
-                </button>
-              </div>
-            </form>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>}
+      ) : (
+        <>
+          <p role="status" className="text-sm text-muted-foreground">{visibles.length} {visibles.length === 1 ? "producto" : "productos"}</p>
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {visibles.map(item => {
+              const stock = item.stock ?? 0;
+              const estado = stock <= 0 ? "Sin stock" : stock <= item.stockCritico ? "Stock bajo" : "Disponible";
+              const tono = estado === "Disponible" ? "text-teal-800 dark:text-teal-300" : estado === "Stock bajo" ? "text-amber-800 dark:text-amber-300" : "text-rose-800 dark:text-rose-300";
+              return <li key={item._id || item.codigo} className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-teal-100 text-teal-900 dark:bg-teal-900/50 dark:text-teal-200"><Package className="size-5" aria-hidden="true" /></span>
+                  <span className="break-all rounded-md bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">{item.codigo}</span>
+                </div>
+                <div className="mt-4 grow">
+                  <p className="text-xs font-semibold text-muted-foreground">{item.categoria || "General"}</p>
+                  <h2 className="mt-1 break-words text-lg font-semibold leading-snug">{item.nombre}</h2>
+                </div>
+                <div className="mt-5 flex flex-wrap items-end justify-between gap-2 border-t border-border pt-4">
+                  <p><span className="text-2xl font-semibold tabular-nums">{stock.toLocaleString("es-CL")}</span> <span className="text-xs text-muted-foreground">{item.unidad || "Unidad"}</span></p>
+                  <p className={`text-xs font-semibold ${tono}`}>{estado}</p>
+                </div>
+              </li>;
+            })}
+          </ul>
+        </>
+      )}
     </div>
-  )
+  );
 }

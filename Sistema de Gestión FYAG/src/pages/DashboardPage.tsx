@@ -1,206 +1,205 @@
-import { useEffect, useState } from "react"
-
-import { Package, TriangleAlert, Layers3 } from "lucide-react"
-
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts"
-
-import { obtenerArticulos, mensajeError, type Articulo } from "@/lib/api"
+import { useEffect, useState } from "react";
+import { Package, AlertTriangle, Layers, RefreshCw } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { SectionTitle } from "@/components/ui/typography";
+import { obtenerArticulos, type Articulo } from "@/lib/api";
+import PageHeader from "@/components/PageHeader";
+import ManagementDashboard from "@/components/ManagementDashboard";
+import { useAppStore } from "@/store/useAppStore";
 
 export default function DashboardPage() {
-  const [articulos, setArticulos] = useState<Articulo[]>([])
+  const rol = useAppStore(state => state.usuario?.rol);
+  return rol === "Gerencia" ? <ManagementDashboard /> : <InventoryDashboard />;
+}
 
-  const [cargando, setCargando] = useState(true)
+function InventoryDashboard() {
+  const [articulos, setArticulos] = useState<Articulo[]>([]);
+  const [cargando, setCargando] = useState(true);
 
-  const [error, setError] = useState("")
-
-  const [intento, setIntento] = useState(0)
+  const cargarDatos = () => {
+    setCargando(true);
+    obtenerArticulos()
+      .then(setArticulos)
+      .catch(console.error)
+      .finally(() => setCargando(false));
+  };
 
   useEffect(() => {
-    const c = new AbortController()
-    setCargando(true)
-    setError("")
+    cargarDatos();
+  }, []);
 
-    obtenerArticulos(c.signal)
-      .then(setArticulos)
-      .catch((err) => {
-        if (!c.signal.aborted) setError(mensajeError(err))
-      })
-      .finally(() => {
-        if (!c.signal.aborted) setCargando(false)
-      })
+  // --- CÁLCULOS ---
+  const totalArticulos = articulos.length;
+  const stockCritico = articulos.filter((a) => a.stock <= a.stockCritico).length;
+  const categorias = new Set(articulos.map((a) => a.categoria)).size;
 
-    return () => c.abort()
-  }, [intento])
+  // Datos para el gráfico de barras (Artículos por categoría)
+  const porCategoria = articulos.reduce((acc, a) => {
+    acc[a.categoria] = (acc[a.categoria] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
-  const criticos = articulos.filter((a) => a.stock <= a.stockCritico)
+  const dataCategorias = Object.keys(porCategoria).map((cat) => ({
+    name: cat,
+    cantidad: porCategoria[cat],
+  }));
 
-  const categorias = [...new Set(articulos.map((a) => a.categoria))]
-
-  const datos = categorias
-    .map((nombre) => ({
-      nombre,
-      articulos: articulos.filter((a) => a.categoria === nombre).length,
-    }))
-    .sort((a, b) => b.articulos - a.articulos)
+  // Datos para el gráfico de torta (Distribución de stock)
+  const disponible = totalArticulos - stockCritico;
+  const dataStock = [
+    { name: "Disponible", value: disponible },
+    { name: "Stock Crítico", value: stockCritico },
+  ];
 
   return (
-    <div className="fyag-page">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-900">
-            Visión general
-          </p>
-          <h1 className="fyag-title mt-2">Panel de control</h1>
-          <p className="fyag-subtitle">
-            Disponibilidad de materiales y alertas del inventario actual.
-          </p>
-        </div>
-        <button
-          disabled={cargando}
-          onClick={() => setIntento((i) => i + 1)}
-          className="fyag-secondary"
-        >
-          Actualizar datos
-        </button>
-      </header>
-      {error ? (
-        <p role="alert" className="fyag-error">
-          {error}
-        </p>
-      ) : cargando ? (
-        <p role="status" className="fyag-card p-10 text-center text-slate-500">
-          Consultando inventario…
-        </p>
-      ) : (
-        <>
-          <div className="grid gap-5 sm:grid-cols-3">
-            {[
-              {
-                label: "Artículos registrados",
-                value: articulos.length,
-                Icon: Package,
-                color: "bg-blue-50 text-blue-900",
-              },
-              {
-                label: "Con stock crítico",
-                value: criticos.length,
-                Icon: TriangleAlert,
-                color: "bg-amber-50 text-amber-700",
-              },
-              {
-                label: "Categorías",
-                value: categorias.length,
-                Icon: Layers3,
-                color: "bg-indigo-50 text-indigo-800",
-              },
-            ].map(({ label, value, Icon, color }) => (
-              <section key={label} className="fyag-card p-6">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-slate-500">{label}</p>
-                  <span className={`rounded-xl p-3 ${color}`}>
-                    <Icon className="size-5" />
-                  </span>
-                </div>
-                <p className="mt-4 text-4xl font-bold tracking-tight">
-                  {value.toLocaleString("es-CL")}
-                </p>
-              </section>
-            ))}
-          </div>
-          <div className="grid items-start gap-6 xl:grid-cols-[1.2fr_1fr]">
-            <section className="fyag-card min-w-0 p-6">
-              <h2 className="text-lg font-bold">Artículos por categoría</h2>
-              <p className="fyag-subtitle">
-                Cantidad de referencias, sin sumar unidades de medida distintas.
-              </p>
-              {datos.length ? (
-                <>
-                  <div className="mt-6 h-72" aria-hidden="true">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={datos}>
-                        <CartesianGrid
-                          stroke="#e2e8f0"
-                          strokeDasharray="3 3"
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="nombre"
-                          tick={{ fontSize: 11 }}
-                          interval={0}
-                        />
-                        <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                        <Tooltip cursor={{ fill: "#f1f5f9" }} />
-                        <Bar
-                          name="Artículos"
-                          dataKey="articulos"
-                          fill="#1e3a8a"
-                          radius={[6, 6, 0, 0]}
-                          maxBarSize={48}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <ul className="sr-only">
-                    {datos.map((d) => (
-                      <li key={d.nombre}>
-                        {d.nombre}: {d.articulos} artículos
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              ) : (
-                <p className="py-16 text-center text-sm text-slate-500">
-                  Aún no hay datos para mostrar.
-                </p>
-              )}
-            </section>
-            <section className="fyag-card p-6">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-bold">Requieren atención</h2>
-                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800">
-                  {criticos.length}
-                </span>
-              </div>
-              <p className="fyag-subtitle">
-                Artículos en su nivel mínimo o por debajo.
-              </p>
-              <ul className="mt-5 max-h-96 space-y-3 overflow-y-auto">
-                {criticos.map((a) => (
-                  <li
-                    key={a._id}
-                    className="rounded-xl border border-amber-100 bg-amber-50/60 p-4"
+    <div className="space-y-6">
+      <PageHeader title="Panel de inventario" description="Consulta existencias y alertas por categoría." actions={
+        <Button onClick={cargarDatos} variant="outline" disabled={cargando}>
+          <RefreshCw className={`size-4 ${cargando ? "animate-spin" : ""}`} /> Actualizar datos
+        </Button>
+      } />
+
+      {/* TARJETAS DE RESUMEN */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Artículos registrados</p>
+              <p className="mt-2 text-4xl font-bold">{totalArticulos}</p>
+            </div>
+            <div className="grid size-12 place-items-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+              <Package className="size-6" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Con stock crítico</p>
+              <p className="mt-2 text-4xl font-bold">{stockCritico}</p>
+            </div>
+            <div className="grid size-12 place-items-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
+              <AlertTriangle className="size-6" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Categorías</p>
+              <p className="mt-2 text-4xl font-bold">{categorias}</p>
+            </div>
+            <div className="grid size-12 place-items-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">
+              <Layers className="size-6" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* GRÁFICOS Y ALERTAS */}
+      <div className="grid gap-6 lg:grid-cols-3">
+
+        {/* Gráfico de Barras: Artículos por Categoría */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <SectionTitle>Artículos por categoría</SectionTitle>
+            <p className="text-sm text-muted-foreground">Cantidad de referencias por cada tipo de material.</p>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            {dataCategorias.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dataCategorias} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    cursor={{ fill: 'var(--color-muted)' }}
+                    contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
+                  />
+                  <Bar dataKey="cantidad" fill="var(--color-primary)" radius={[4, 4, 0, 0]} maxBarSize={60} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="grid h-full place-items-center text-muted-foreground">No hay datos suficientes.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Gráfico de Torta: Estado del Stock */}
+        <Card>
+          <CardHeader>
+            <SectionTitle>Estado del Inventario</SectionTitle>
+            <p className="text-sm text-muted-foreground">Distribución de artículos según su nivel de stock.</p>
+          </CardHeader>
+          <CardContent className="h-[300px] flex flex-col justify-center">
+            {totalArticulos > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={dataStock}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
                   >
-                    <div className="flex justify-between gap-3">
-                      <p className="text-sm font-semibold">{a.nombre}</p>
-                      <span className="whitespace-nowrap text-sm font-bold text-amber-800">
-                        {a.stock} {a.unidad}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {a.codigo} · Mínimo: {a.stockCritico} {a.unidad}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-              {!criticos.length && (
-                <p className="mt-5 rounded-xl bg-emerald-50 p-5 text-sm text-emerald-800">
-                  {articulos.length
-                    ? "El inventario no presenta alertas de stock."
-                    : "Registra artículos para comenzar el seguimiento."}
-                </p>
-              )}
-            </section>
+                    {dataStock.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index === 0 ? "#10b981" : "#f59e0b"} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="grid h-full place-items-center text-muted-foreground">Sin inventario.</p>
+            )}
+
+            {/* Leyenda manual para el gráfico de torta */}
+            <div className="flex justify-center gap-6 mt-4">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="size-3 rounded-full bg-emerald-500"></span>
+                <span className="text-muted-foreground">Disponible</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="size-3 rounded-full bg-amber-500"></span>
+                <span className="text-muted-foreground">Crítico</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ALERTAS (Debajo de los gráficos) */}
+      <Card>
+        <CardHeader>
+          <SectionTitle>Requieren atención</SectionTitle>
+          <p className="text-sm text-muted-foreground">Artículos en su nivel mínimo o por debajo.</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {articulos.filter(a => a.stock <= a.stockCritico).map(a => (
+              <div key={a._id} className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-900/20">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-amber-900 dark:text-amber-200">{a.nombre}</p>
+                  <p className="font-bold text-amber-700 dark:text-amber-300">{a.stock} {a.unidad}</p>
+                </div>
+                <p className="text-xs text-amber-700/70 dark:text-amber-300/70 mt-1">{a.codigo} · Mínimo: {a.stockCritico} {a.unidad}</p>
+              </div>
+            ))}
+            {stockCritico === 0 && (
+              <p className="col-span-full text-center text-sm text-muted-foreground py-6">Todo el inventario está en orden.</p>
+            )}
           </div>
-        </>
-      )}
+        </CardContent>
+      </Card>
+
     </div>
-  )
+  );
 }

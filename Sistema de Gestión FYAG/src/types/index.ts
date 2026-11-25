@@ -1,6 +1,8 @@
-export type Rol = "Gerencia" | "Finanzas" | "Supervisor" | "Técnico";
+export type Rol = "Gerencia" | "Finanzas" | "Encargado de Bodega" | "Técnico";
+
 export type EstadoPresupuesto = "Borrador" | "Enviado" | "Aprobado" | "Rechazado";
 export type EstadoObra = "En proceso" | "Finalizada" | "Suspendida" | "Cancelada" | "Cierre comercial";
+
 export type TipoServicio =
   | "Proyecto" | "Mantención" | "Climatización" | "Proyecto eléctrico"
   | "Emergencia" | "Garantía" | "Venta de repuestos" | "Mejoras";
@@ -20,60 +22,31 @@ export interface ItemPresupuesto {
   precioUnitario: number;
 }
 
-export interface Presupuesto {
-  id: string;
+export interface PresupuestoDB {
+  id: number;
   folio: string;
-  clienteId: string;
+  cliente_id: string;
+  cliente_nombre?: string | null;
   fecha: string;
-  estado: EstadoPresupuesto;
-  tipo: TipoServicio;
-  items: ItemPresupuesto[];
-  // Los presupuestos de la API traen neto e IVA; los de demostración solo el total.
-  neto?: number;
-  iva?: number;
+  tipo: string;
   total: number;
+  estado: string;
 }
 
-export interface Obra {
-  id: string;
+export interface ObraDB {
+  id: number;
   codigo: string;
   nombre: string;
-  clienteId: string;
-  presupuestoId: string;
-  tecnicoId?: string;
-  estado: EstadoObra;
-  tipo: TipoServicio;
-  fechaInicio: string;
-  fechaFin?: string;
+  cliente_id: string;
+  cliente_nombre?: string | null;
+  presupuesto_id: number | null;
+  presupuesto_folio?: string | null;
+  tipo: string;
+  tecnico_id: string | null;
+  inicio: string;
   avance: number;
-}
-
-export interface Tecnico {
-  id: string;
-  nombre: string;
-  especialidad: string;
-  email: string;
-  activo: boolean;
-}
-
-export interface Factura {
-  id: string;
-  folio: string;
-  obraId: string;
-  clienteId: string;
-  fechaEmision: string;
-  fechaVencimiento: string;
-  monto: number;
-  estado: "Pendiente" | "Pagada" | "Vencida";
-}
-
-export interface Pago {
-  id: string;
-  facturaId: string;
-  obraId: string;
-  fecha: string;
-  monto: number;
-  metodo: "Transferencia" | "Cheque" | "Tarjeta";
+  historial?: { fecha: string; detalle: string }[];
+  estado: string;
 }
 
 export interface Usuario {
@@ -83,11 +56,6 @@ export interface Usuario {
   rol: Rol;
   tecnicoId?: string;
 }
-
-export interface Auditoria {
-  id: string;
-  fecha: string;
-  usuario: string;
-  accion: string;
-  entidad: string;
-}
+export type CambiosObra = Partial<Pick<ObraDB, "tecnico_id" | "estado" | "avance">> & {
+  materiales?: { codigo: string; cantidad: number }[];
+};

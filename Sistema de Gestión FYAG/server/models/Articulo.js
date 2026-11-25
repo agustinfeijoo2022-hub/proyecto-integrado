@@ -19,6 +19,8 @@ const CompraSchema = new mongoose.Schema({
   usuarioId: { type: String, required: true },
 
   fecha: { type: Date, default: Date.now },
+  recibida: { type: Boolean, default: false },
+  cantidadRecibida: { type: Number, min: 0, default: 0 },
 })
 
 const ArticuloSchema = new mongoose.Schema(
@@ -41,6 +43,23 @@ const ArticuloSchema = new mongoose.Schema(
 
     unidad: { type: String, default: "Unidad", trim: true, maxlength: 160 },
 
+    asignacionesPendientes: { type: Map, of: Number, default: {}, select: false },
+    devueltosObra: { type: Map, of: Number, default: {}, select: false },
+    utilizadosObra: { type: Map, of: Number, default: {}, select: false },
+    materialesObra: { type: Map, of: Number, default: {}, select: false },
+    solicitudes: {
+      type: [{
+        id: String,
+        obraId: Number,
+        tecnicoId: String,
+        cantidad: Number,
+        estado: String,
+        fecha: Date,
+        resueltaEn: Date,
+      }],
+      default: [],
+      select: false,
+    },
     compras: { type: [CompraSchema], default: [], select: false },
   },
   { timestamps: true },

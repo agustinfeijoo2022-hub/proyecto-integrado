@@ -1,27 +1,41 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: './.env' });
+import express from "express";
+import { fileURLToPath } from "node:url";
+import "dotenv/config";
 import mongoose from "mongoose";
 import Articulo from "./models/Articulo.js";
-import Presupuesto from "./models/Presupuesto.js";
 import { conectarMongo } from "./config/mongo.js";
 import { conectarPostgres, pool } from "./config/postgres.js";
+import { prepararEsquema } from "./config/esquema.js";
+import { recuperarAsignaciones } from "./controllers/obrasController.js";
 import { createApp } from "./app.js";
 
 let app;
 
 try {
-  app = createApp(Articulo, process.env, Presupuesto);
+  app = createApp(Articulo, process.env, null, pool);
 
-  // PostgreSQL es opcional: su inicializador informa el error sin lanzarlo.
-  await conectarPostgres();
+  // Ambas bases deben estar disponibles antes de aceptar peticiones.
+  if (!await conectarPostgres()) throw new Error("PostgreSQL es obligatorio. Revisa DATABASE_URL y el servicio local.");
+
+  await prepararEsquema(pool);
 
   // MongoDB sigue siendo obligatorio para inventario y compras.
   await conectarMongo();
   await Articulo.init();
-  await Presupuesto.init();
+  await recuperarAsignaciones(pool, Articulo);
 
   const port = Number(process.env.PORT || 3001);
-  const server = app.listen(port, () => {
+  let web = app;
+  if (process.env.SERVIR_FRONTEND === "true") {
+    const dist = fileURLToPath(new URL("../dist/", import.meta.url));
+    const index = fileURLToPath(new URL("../dist/index.html", import.meta.url));
+    web = express();
+    web.disable("x-powered-by");
+    web.use((req, res, next) => /^\/api(?:\/|$)/.test(req.path) ? app(req, res, next) : next());
+    web.use(express.static(dist));
+    web.get(/^\/(?:$|login(?:\/|$)|app(?:\/|$))/, (_req, res) => res.sendFile(index));
+  }
+  const server = web.listen(port, () => {
     console.log(`API FYAG: http://localhost:${port}`);
   });
 

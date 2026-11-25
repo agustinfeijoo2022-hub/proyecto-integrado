@@ -1,57 +1,132 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-  --color-primary: #1e3a8a;
+
+  /* PALETA CLARA Y MODERNA */
+  --color-primary: #2563eb;
   --color-primary-foreground: #ffffff;
-  --color-sidebar: #0f172a;
-  --color-foreground: #172033;
-  --color-background: #f3f6fb;
-  --color-app: #f3f6fb;
-  --color-border: #e2e8f0;
-  --color-input: #cbd5e1;
-  --color-ring: #2563eb;
+  --color-sidebar: #1e293b;
+  --color-foreground: #334155;
+  --color-background: #f8fafc;
+  --color-app: #f8fafc;
+  --color-border: #cbd5e1;
+  --color-input: #e2e8f0;
+  --color-ring: #3b82f6;
   --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
   --color-card: #ffffff;
-  --color-card-foreground: #172033;
-  --color-destructive: #b91c1c;
+  --color-card-foreground: #1e293b;
+  --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
   --color-accent: #eff6ff;
-  --color-accent-foreground: #1e3a8a;
-  --color-secondary: #e2e8f0;
-  --color-secondary-foreground: #172033;
-  --color-primary-dark: #172554;
+  --color-accent-foreground: #1d4ed8;
+  --color-secondary: #f1f5f9;
+  --color-secondary-foreground: #334155;
+  --color-primary-dark: #1e40af;
   --color-primary-light: #eff6ff;
-  --color-danger: #b91c1c;
+  --color-danger: #ef4444;
   --color-danger-light: #fef2f2;
-  --color-success-dark: #047857;
+  --color-success-dark: #10b981;
   --color-success-light: #ecfdf5;
-  --color-warning-dark: #92400e;
+  --color-warning-dark: #f59e0b;
   --color-warning-light: #fffbeb;
   --color-info-light: #eff6ff;
-  --color-info: #2563eb;
-  --color-success: #047857;
-  --color-warning: #b45309;
+  --color-info: #3b82f6;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
 }
+
+/* MODO OSCURO */
+.dark {
+  --color-foreground: #f8fafc;
+  --color-background: #0f172a;
+  --color-app: #020617;
+  --color-border: #334155;
+  --color-muted: #1e293b;
+  --color-muted-foreground: #94a3b8;
+  --color-card: #0f172a;
+  --color-card-foreground: #f8fafc;
+  --color-secondary: #1e293b;
+  --color-secondary-foreground: #f8fafc;
+  --color-accent: #1e3a8a;
+  --color-accent-foreground: #eff6ff;
+  --color-primary: #3b82f6;
+}
+
 @layer base {
   * { box-sizing: border-box; border-color: var(--color-border); }
-  body { margin: 0; min-width: 320px; background: var(--color-app); color: var(--color-foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  body { margin: 0; min-width: 320px; background: var(--color-app); color: var(--color-foreground); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; transition: background-color 0.3s, color 0.3s; }
   button:not(:disabled), select { cursor: pointer; }
   button:disabled { cursor: not-allowed; opacity: .6; }
-  :focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+  :focus-visible { outline: 3px solid #93c5fd; outline-offset: 3px; }
   ::selection { background: #dbeafe; color: #1e3a8a; }
 }
+
 @layer components {
   .fyag-page { @apply mx-auto w-full max-w-7xl space-y-6; }
-  .fyag-card { @apply rounded-2xl border border-slate-200 bg-white shadow-md; }
-  .fyag-title { @apply text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl; }
-  .fyag-subtitle { @apply mt-2 text-sm leading-6 text-slate-500; }
-  .fyag-input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100; }
-  .fyag-label { @apply mb-2 block text-sm font-medium text-slate-700; }
-  .fyag-button { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:opacity-60; }
-  .fyag-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50; }
+  .fyag-card { @apply rounded-2xl border shadow-sm transition-colors duration-300; border-color: var(--color-border); background-color: var(--color-card); }
+  .fyag-title { @apply text-2xl font-bold tracking-tight sm:text-3xl; color: var(--color-foreground); }
+  .fyag-subtitle { @apply mt-2 text-sm leading-6; color: var(--color-muted-foreground); }
+  .fyag-input { @apply w-full rounded-xl border px-3 py-2.5 text-sm shadow-sm outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-50; border-color: var(--color-border); background-color: var(--color-card); color: var(--color-foreground); }
+  .fyag-label { @apply mb-2 block text-sm font-medium; color: var(--color-foreground); }
+  .fyag-button { @apply inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60; }
+  .fyag-secondary { @apply inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition; border-color: var(--color-border); background-color: var(--color-card); color: var(--color-foreground); }
   .fyag-error { @apply rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800; }
 }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+
+@layer components {
+  .fyag-sidebar { background: linear-gradient(170deg, #1e293b, #0f172a); box-shadow: 4px 0 24px #0000000a; }
+  .fyag-dashboard { @apply rounded-3xl bg-slate-900 p-5 text-slate-100 sm:p-8; background-image: radial-gradient(ellipse at 100% 0%, #3b82f640, transparent 55%); }
+  .fyag-dashboard .fyag-card { @apply border-slate-700 bg-slate-800/80 shadow-lg; }
+  .fyag-dashboard .fyag-title { @apply text-slate-50; }
+  .fyag-dashboard .fyag-subtitle, .fyag-dashboard .text-slate-500 { @apply text-slate-400; }
+  .fyag-dashboard .text-blue-900 { @apply text-blue-400; }
+  .fyag-dashboard .fyag-secondary { @apply border-slate-600 bg-slate-700 text-slate-200 hover:bg-slate-600; }
+  .fyag-dashboard .bg-blue-50, .fyag-dashboard .bg-indigo-50 { @apply bg-blue-400/10 text-blue-400; }
+}
+/* Paleta del área autenticada. */
+.fyag-workspace {
+  --color-app: #f5f7f3;
+  --color-foreground: #1d302b;
+  --color-card-foreground: #1d302b;
+  --color-border: #dce5de;
+  --color-muted: #ecf2ed;
+  --color-muted-foreground: #506358;
+  --color-primary: #196549;
+  --color-primary-dark: #104b36;
+  --color-primary-light: #e4f4eb;
+  --color-ring: #4d9d77;
+  --color-surface: #eef4ef;
+}
+
+.dark .fyag-workspace {
+  --color-app: #101815;
+  --color-foreground: #f0f5f2;
+  --color-card: #19241e;
+  --color-card-foreground: #f0f5f2;
+  --color-border: #31453a;
+  --color-muted: #24352b;
+  --color-muted-foreground: #aec1b5;
+  --color-primary: #75d1a6;
+  --color-primary-foreground: #10231a;
+  --color-primary-dark: #abe9cb;
+  --color-primary-light: #263e32;
+  --color-ring: #75d1a6;
+  --color-surface: #223129;
+}
+
+html.fyag-texto-grande {
+  font-size: 118.75%;
+}
+
+.fyag-workspace :where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-primary-dark);
+  outline-offset: 2px;
 }

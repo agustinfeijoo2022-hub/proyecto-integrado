@@ -1,37 +1,74 @@
-import { useMemo, useState } from "react";
-import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+// src/pages/WorksPage.tsx
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import NewWorkDialog from "@/components/NewWorkDialog";
+import { Field, Input, Select } from "@/components/ui/input";
+import { Hammer } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import StatusBadge from "@/components/StatusBadge";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input, Select } from "@/components/ui/input";
-import { Table, TBody, TD, TH, THead, TR, TableWrap } from "@/components/ui/table";
-import { clientes, tecnicos } from "@/data/mockData";
-import { shortDate } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
+import StatusBadge from "@/components/StatusBadge";
+import { shortDate } from "@/lib/utils";
 
 export default function WorksPage() {
-  const obras = useAppStore((state) => state.obras);
-  const usuario = useAppStore((state) => state.usuario);
-  const navigate = useNavigate();
-  const [search, setSearch] = useState("");
+  const obras = useAppStore((s) => s.obras);
+  const fetchObras = useAppStore((s) => s.fetchObras);
+  const loading = useAppStore((s) => s.cargandoObras);
+  const rol = useAppStore((s) => s.usuario?.rol);
+  const [busqueda, setBusqueda] = useState("");
   const [estado, setEstado] = useState("");
-  const [tecnico, setTecnico] = useState("");
-  const [fecha, setFecha] = useState("");
-  const [ascending, setAscending] = useState(false);
-  const [page, setPage] = useState(1);
-  const filtered = useMemo(() => obras.filter((obra) =>
-    (!search || `${obra.codigo} ${obra.nombre} ${clientes.find((c) => c.id === obra.clienteId)?.razonSocial}`.toLowerCase().includes(search.toLowerCase())) &&
-    (!estado || obra.estado === estado) && (!tecnico || obra.tecnicoId === tecnico) && (!fecha || obra.fechaInicio >= fecha)
-  ).sort((a, b) => ascending ? a.codigo.localeCompare(b.codigo) : b.codigo.localeCompare(a.codigo)), [obras, search, estado, tecnico, fecha, ascending]);
-  const shown = filtered.slice((page - 1) * 6, page * 6);
-  return <div><PageHeader title="Obras" description={`${filtered.length} obras encontradas`} actions={usuario?.rol !== "Técnico" ? <NewWorkDialog /> : undefined} />
-    <Card><div className="grid gap-3 border-b border-border p-4 sm:grid-cols-2 xl:grid-cols-5"><div className="relative sm:col-span-2"><Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input className="pl-9" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Buscar por código, obra o cliente..." /></div><Select aria-label="Filtrar por estado" value={estado} onChange={(event) => { setEstado(event.target.value); setPage(1); }}><option value="">Todos los estados</option><option>En proceso</option><option>Finalizada</option><option>Suspendida</option><option>Cancelada</option></Select><Select aria-label="Filtrar por técnico" value={tecnico} onChange={(event) => { setTecnico(event.target.value); setPage(1); }}><option value="">Todos los técnicos</option>{tecnicos.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</Select><Input type="date" aria-label="Fecha de inicio desde" value={fecha} onChange={(event) => { setFecha(event.target.value); setPage(1); }} /></div>
-      <TableWrap className="hidden md:block"><Table><THead><TR><TH><Button variant="ghost" size="sm" className="-ml-3 h-7 text-xs uppercase" onClick={() => setAscending((value) => !value)}>Código <ArrowUpDown className="size-3" /></Button></TH><TH>Obra / Cliente</TH><TH>Tipo</TH><TH>Técnico</TH><TH>Inicio</TH><TH>Avance</TH><TH>Estado</TH></TR></THead><TBody>{shown.map((obra) => <TR key={obra.id} className="cursor-pointer" tabIndex={0} onClick={() => navigate(`/obras/${obra.id}`)} onKeyDown={(event) => event.key === "Enter" && navigate(`/obras/${obra.id}`)}><TD className="font-semibold text-primary">{obra.codigo}</TD><TD><strong>{obra.nombre}</strong><div className="text-xs text-muted-foreground">{clientes.find((c) => c.id === obra.clienteId)?.razonSocial}</div></TD><TD>{obra.tipo}</TD><TD>{tecnicos.find((t) => t.id === obra.tecnicoId)?.nombre ?? "Sin asignar"}</TD><TD>{shortDate(obra.fechaInicio)}</TD><TD><div className="w-24"><div className="mb-1 text-xs">{obra.avance}%</div><div className="h-1.5 rounded-full bg-muted"><div className="h-full rounded-full bg-info" style={{ width: `${obra.avance}%` }} /></div></div></TD><TD><StatusBadge status={obra.estado} /></TD></TR>)}</TBody></Table></TableWrap>
-      <div className="grid gap-3 p-4 md:hidden">{shown.map((obra) => <Button variant="outline" key={obra.id} onClick={() => navigate(`/obras/${obra.id}`)} className="h-auto w-full flex-col items-stretch rounded-xl p-4 text-left font-normal"><div className="flex items-start justify-between gap-3"><div><div className="font-bold text-primary">{obra.codigo}</div><div className="mt-1 font-semibold text-foreground">{obra.nombre}</div></div><StatusBadge status={obra.estado} /></div><div className="mt-3 text-sm text-muted-foreground">{clientes.find((c) => c.id === obra.clienteId)?.razonSocial}</div><div className="mt-4 flex items-center justify-between text-xs text-foreground"><span>{tecnicos.find((t) => t.id === obra.tecnicoId)?.nombre ?? "Sin asignar"}</span><strong>{obra.avance}% avance</strong></div></Button>)}</div>
-      <div className="flex items-center justify-between border-t border-border p-4 text-sm text-muted-foreground"><span>Página {page} de {Math.max(1, Math.ceil(filtered.length / 6))}</span><div className="flex gap-2"><Button variant="outline" size="icon" disabled={page === 1} onClick={() => setPage((value) => value - 1)}><ChevronLeft /></Button><Button variant="outline" size="icon" disabled={page >= Math.ceil(filtered.length / 6)} onClick={() => setPage((value) => value + 1)}><ChevronRight /></Button></div></div>
-    </Card>
-  </div>;
+  const estados = [...new Set(obras.map(o => o.estado))].sort();
+  const visibles = obras.filter(o =>
+    (!estado || o.estado === estado) &&
+    `${o.codigo} ${o.nombre} ${o.tipo}`.toLocaleLowerCase("es").includes(busqueda.trim().toLocaleLowerCase("es")),
+  );
+
+  useEffect(() => { void fetchObras(); }, [fetchObras]);
+
+  return (
+    <div>
+      <PageHeader area="seguimiento" title="Obras" description="Seguimiento de obras asignadas." actions={rol === "Encargado de Bodega" && <NewWorkDialog />} />
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        <Field label="Buscar por código, nombre o servicio">
+          <Input value={busqueda} onChange={event => setBusqueda(event.target.value)} />
+        </Field>
+        <Field label="Estado">
+          <Select value={estado} onChange={event => setEstado(event.target.value)}>
+            <option value="">Todos los estados</option>
+            {estados.map(valor => <option key={valor}>{valor}</option>)}
+          </Select>
+        </Field>
+      </div>
+
+      <Card className="overflow-hidden">
+        {loading ? (
+          <p className="p-8 text-center text-muted-foreground">Cargando...</p>
+        ) : visibles.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 p-12 text-center">
+            <Hammer className="size-10 text-muted-foreground" />
+            <p className="font-medium">{obras.length ? "No hay obras que coincidan con los filtros." : "No hay obras registradas."}</p>
+          </div>
+        ) : (
+          <ul className="grid gap-3 p-3 sm:p-4 md:grid-cols-2 xl:grid-cols-3">
+            {visibles.map(obra => (
+              <li key={obra.id} className="flex flex-col rounded-xl border border-border bg-app p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <code className="text-xs text-muted-foreground">{obra.codigo}</code>
+                  <StatusBadge status={obra.estado} />
+                </div>
+                <h2 className="mt-3 flex-1 break-words text-lg font-semibold">
+                  <Link className="text-foreground hover:text-primary hover:underline" to={`/app/obras/${obra.id}`}>{obra.nombre}</Link>
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">{obra.tipo} · Inicio {shortDate(obra.inicio)}</p>
+                <div className="mt-4 flex items-center gap-3">
+                  <progress aria-label={`Avance de ${obra.nombre}`} max={100} value={obra.avance} className="h-2 min-w-0 flex-1 accent-amber-600" />
+                  <span className="text-xs font-semibold tabular-nums">{obra.avance}%</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </div>
+  );
 }

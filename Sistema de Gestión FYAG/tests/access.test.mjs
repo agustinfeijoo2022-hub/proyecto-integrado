@@ -6,9 +6,9 @@ const source = readFileSync(new URL("../src/app/access.ts", import.meta.url), "u
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } });
 const { permisos, inicioPorRol, puedeAcceder, destinoSiDenegado } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 const matriz = {
-  Gerencia: ["dashboard", "catalogo", "compras", "obras", "presupuestos", "cobranza", "reportes", "usuarios"],
-  Finanzas: ["dashboard", "compras", "presupuestos", "cobranza", "reportes"],
-  Supervisor: ["dashboard", "catalogo", "obras"],
+  Gerencia: ["dashboard", "compras", "obras", "mis-obras", "presupuestos", "clientes", "facturacion", "cobranza", "reportes", "usuarios"],
+  Finanzas: ["dashboard", "catalogo", "compras", "solicitudes", "presupuestos", "clientes", "facturacion", "cobranza", "reportes"],
+  "Encargado de Bodega": ["dashboard", "catalogo", "compras", "recepcion", "obras", "reportes"],
   Técnico: ["mis-obras"],
 };
 for (const [rol, esperados] of Object.entries(matriz)) {
@@ -20,16 +20,16 @@ for (const [rol, esperados] of Object.entries(matriz)) {
     }
   });
 }
-test("Técnico: login y todas las rutas administrativas redirigen a /mis-obras", () => {
-  assert.equal(inicioPorRol("Técnico"), "/mis-obras");
+test("Técnico: login y todas las rutas administrativas redirigen a /app/mis-obras", () => {
+  assert.equal(inicioPorRol("Técnico"), "/app/mis-obras");
   for (const [modulo, roles] of Object.entries(permisos)) {
-    assert.equal(destinoSiDenegado("Técnico", roles), modulo === "mis-obras" ? null : "/mis-obras");
+    assert.equal(destinoSiDenegado("Técnico", roles), modulo === "mis-obras" ? null : "/app/mis-obras");
   }
 });
 test("Sin sesión no se monta el layout protegido", () => {
   assert.equal(destinoSiDenegado(null), "/login");
   for (const roles of Object.values(permisos)) assert.equal(destinoSiDenegado(null, roles), "/login");
 });
-test("Login: los demás roles inician en /dashboard", () => {
-  for (const rol of ["Gerencia", "Finanzas", "Supervisor"]) assert.equal(inicioPorRol(rol), "/dashboard");
+test("Login: los demás roles inician en /app/dashboard", () => {
+  for (const rol of ["Gerencia", "Finanzas", "Encargado de Bodega"]) assert.equal(inicioPorRol(rol), "/app/dashboard");
 });

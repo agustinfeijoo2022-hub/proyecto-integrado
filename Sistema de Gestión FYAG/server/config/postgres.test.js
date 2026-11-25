@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { conectarPostgres, SQL_AUDITORIA, pool } from "./postgres.js";
 
-test("PostgreSQL: inicialización opcional y tabla auditoria", async t => {
+test("PostgreSQL: resultado de conexión y tabla auditoria", async t => {
   const anterior = process.env.DATABASE_URL;
   process.env.DATABASE_URL = "postgresql://postgres:test@localhost:5432/test";
   t.after(async () => {
@@ -27,7 +27,7 @@ test("PostgreSQL: inicialización opcional y tabla auditoria", async t => {
     assert.equal(await conectarPostgres(fake, {log: () => assert.fail("No debe registrar éxito"), warn: (...m) => warnings.push(m)}), false);
     assert.match(warnings[0].join(" "), /ECONNREFUSED/);
   });
-  await t.test("fallo del CREATE TABLE: se libera la conexión y continúa", async () => {
+  await t.test("fallo del CREATE TABLE: se libera la conexión y devuelve fallo", async () => {
     let released = 0;
     const warnings = [];
     const fake = { connect: async () => ({query: async () => {throw new Error("permission denied");}, release: () => released++}) };
