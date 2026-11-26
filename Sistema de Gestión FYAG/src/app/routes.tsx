@@ -2,9 +2,9 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from "react"
 import { Navigate, Outlet, createBrowserRouter } from "react-router-dom"
 import PortadaEmpresa from "@/pages/PortadaEmpresa"
 import PresentacionPage from "@/pages/PresentacionPage"
+import LoginPage from "@/pages/LoginPage"
 import AppLayout from "@/layouts/AppLayout"
 
-const LoginPage = lazy(() => import("@/pages/LoginPage"))
 const DashboardPage = lazy(() => import("@/pages/DashboardPage"))
 const CatalogoPage = lazy(() => import("@/pages/CatalogoPage"))
 const ComprasPage = lazy(() => import("@/pages/ComprasPage"))
@@ -80,6 +80,21 @@ function Sesion() {
   return <Suspense fallback={<div role="status" className="p-10 text-center text-slate-500">Cargando módulo…</div>}><Outlet /></Suspense>
 }
 
+function ErrorDeRuta() {
+  return (
+    <main className="grid min-h-svh place-items-center bg-app p-6 text-foreground">
+      <section className="w-full max-w-md rounded-2xl border border-border bg-card p-6">
+        <h1 className="text-xl font-semibold">No se pudo cargar esta pantalla</h1>
+        <p className="mt-2 text-muted-foreground">Recarga la página para volver a intentarlo.</p>
+        <div className="mt-5 flex flex-wrap items-center gap-4">
+          <button type="button" onClick={() => window.location.reload()} className="rounded-xl bg-primary px-4 py-2 font-semibold text-primary-foreground">Recargar página</button>
+          <a href="/" className="font-medium underline underline-offset-4">Volver al inicio</a>
+        </div>
+      </section>
+    </main>
+  )
+}
+
 function RutaProtegida({ roles, children }: { roles?: readonly Rol[]; children: ReactNode }) {
   const usuario = useAppStore((s) => s.usuario)
   const destino = destinoSiDenegado(usuario?.rol ?? null, roles);
@@ -97,6 +112,7 @@ export const router = createBrowserRouter([
   { path: "/login", element: <PresentacionPage /> },
   {
     element: <Sesion />,
+    errorElement: <ErrorDeRuta />,
     children: [
       
       // 2. RUTA DE LOGIN
