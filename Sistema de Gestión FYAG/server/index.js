@@ -33,7 +33,7 @@ try {
     web.disable("x-powered-by");
     web.use((req, res, next) => /^\/api(?:\/|$)/.test(req.path) ? app(req, res, next) : next());
     web.use(express.static(dist));
-    web.get(/^\/(?:$|login(?:\/|$)|app(?:\/|$))/, (_req, res) => res.sendFile(index));
+    web.get(/^\/(?:$|login\/?$|acceso\/?$|app(?:\/|$))/, (_req, res) => res.sendFile(index));
   }
   const server = web.listen(port, () => {
     console.log(`API FYAG: http://localhost:${port}`);

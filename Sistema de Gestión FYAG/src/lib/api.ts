@@ -10,7 +10,8 @@ export interface Articulo {
   unidad: string;
 }
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:3001/api").replace(/\/$/, "");
+const defaultApiUrl = import.meta.env.DEV ? "http://localhost:3001/api" : "/api";
+const API_URL = (import.meta.env.VITE_API_URL || defaultApiUrl).replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) {

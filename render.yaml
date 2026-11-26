@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: fyag-backend
+    runtime: docker
+    rootDir: "Sistema de Gestión FYAG"
+    healthCheckPath: /api/status
+    envVars:
+      - key: SERVIR_FRONTEND
+        value: "false"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: FRONTEND_ORIGIN
+        value: https://fyag-codigo-actualizado.vercel.app
+      - key: DATABASE_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: FYAG_GERENCIA_PASSWORD
+        sync: false
+      - key: FYAG_FINANZAS_PASSWORD
+        sync: false
+      - key: FYAG_SUPERVISOR_PASSWORD
+        sync: false
+      - key: FYAG_TECNICO_PASSWORD
+        sync: false
