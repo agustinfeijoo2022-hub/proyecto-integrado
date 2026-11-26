@@ -31,7 +31,7 @@ export default function PortadaEmpresa() {
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-emerald-50 sm:text-xl">
             Refrigeración industrial, mantención e inventario. Una plataforma para coordinar materiales, obras y cobros.
           </p>
-          <Link to="/acceso"
+          <Link to="/login"
             className="mt-8 inline-flex min-h-12 items-center gap-3 rounded-xl bg-emerald-200 px-5 py-3 font-bold text-emerald-950 hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
             Iniciar sesión <ArrowRight className="size-5" aria-hidden="true" />
           </Link>
