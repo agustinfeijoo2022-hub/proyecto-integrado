@@ -1,3 +1,4 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { useEffect, useState } from "react";
 import { Package, AlertTriangle, Layers, RefreshCw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
@@ -55,12 +56,13 @@ function InventoryDashboard() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Panel de inventario" description="Consulta existencias y alertas por categoría." actions={
+      <PageHeader area="bodega" title="Panel de inventario" actions={
         <Button onClick={cargarDatos} variant="outline" disabled={cargando}>
           <RefreshCw className={`size-4 ${cargando ? "animate-spin" : ""}`} /> Actualizar datos
         </Button>
       } />
 
+      <PuntoGuia id="indicadores-stock" />
       {/* TARJETAS DE RESUMEN */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
@@ -102,10 +104,11 @@ function InventoryDashboard() {
 
       {/* GRÁFICOS Y ALERTAS */}
       <div className="grid gap-6 lg:grid-cols-3">
-
+        
         {/* Gráfico de Barras: Artículos por Categoría */}
         <Card className="lg:col-span-2">
           <CardHeader>
+            <PuntoGuia id="grafico-categorias" />
             <SectionTitle>Artículos por categoría</SectionTitle>
             <p className="text-sm text-muted-foreground">Cantidad de referencias por cada tipo de material.</p>
           </CardHeader>
@@ -116,7 +119,7 @@ function InventoryDashboard() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                   <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip
+                  <Tooltip 
                     cursor={{ fill: 'var(--color-muted)' }}
                     contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                   />
@@ -132,6 +135,7 @@ function InventoryDashboard() {
         {/* Gráfico de Torta: Estado del Stock */}
         <Card>
           <CardHeader>
+            <PuntoGuia id="grafico-stock" />
             <SectionTitle>Estado del Inventario</SectionTitle>
             <p className="text-sm text-muted-foreground">Distribución de artículos según su nivel de stock.</p>
           </CardHeader>
@@ -152,7 +156,7 @@ function InventoryDashboard() {
                       <Cell key={`cell-${index}`} fill={index === 0 ? "#10b981" : "#f59e0b"} />
                     ))}
                   </Pie>
-                  <Tooltip
+                  <Tooltip 
                     contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                   />
                 </PieChart>
@@ -160,7 +164,7 @@ function InventoryDashboard() {
             ) : (
               <p className="grid h-full place-items-center text-muted-foreground">Sin inventario.</p>
             )}
-
+            
             {/* Leyenda manual para el gráfico de torta */}
             <div className="flex justify-center gap-6 mt-4">
               <div className="flex items-center gap-2 text-sm">
@@ -179,6 +183,7 @@ function InventoryDashboard() {
       {/* ALERTAS (Debajo de los gráficos) */}
       <Card>
         <CardHeader>
+          <PuntoGuia id="alertas-stock" />
           <SectionTitle>Requieren atención</SectionTitle>
           <p className="text-sm text-muted-foreground">Artículos en su nivel mínimo o por debajo.</p>
         </CardHeader>

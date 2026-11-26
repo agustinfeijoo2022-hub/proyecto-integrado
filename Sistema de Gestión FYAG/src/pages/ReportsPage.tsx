@@ -1,3 +1,4 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { toast } from "sonner";
 import type { CeldaExportable } from "@/lib/exportFormat";
 import { useEffect, useState } from "react";
@@ -27,7 +28,7 @@ export default function ReportsPage() {
   const usuario = useAppStore((state) => state.usuario);
   const presupuestos = useAppStore((state) => state.presupuestos);
   const obras = useAppStore((state) => state.obras);
-
+  
   const [resumenFinanzas, setResumenFinanzas] = useState<Resumen | null>(null);
   const fetchObras = useAppStore(state => state.fetchObras);
   const fetchPresupuestos = useAppStore(state => state.fetchPresupuestos);
@@ -36,9 +37,9 @@ export default function ReportsPage() {
   const [cargando, setCargando] = useState(true);
 
   // 1. VALIDACIÓN DE ROL: Permitimos a Gerencia, Finanzas y Encargado de Bodega
-  const puedeVerReportes =
-    usuario?.rol === "Gerencia" ||
-    usuario?.rol === "Finanzas" ||
+  const puedeVerReportes = 
+    usuario?.rol === "Gerencia" || 
+    usuario?.rol === "Finanzas" || 
     usuario?.rol === "Encargado de Bodega";
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function ReportsPage() {
     acc[p.estado] = (acc[p.estado] || 0) + 1;
     return acc;
   }, {});
-
+  
   const dataPresupuestos = Object.keys(presupuestosPorEstado).map((key) => ({
     name: key,
     cantidad: presupuestosPorEstado[key],
@@ -123,13 +124,14 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader area="finanzas" title="Reportes y Estadísticas" description="Resumen visual de la operación de FYAG." actions={<>
+      <PageHeader title="Reportes y Estadísticas" actions={<>
         <Button variant="outline" disabled={!resumenFinanzas} onClick={() => exportar("pdf")}>Exportar PDF</Button>
         <Button variant="outline" disabled={!resumenFinanzas || exportandoExcel} onClick={() => exportar("excel")}>{exportandoExcel ? "Preparando Excel…" : "Exportar Excel"}</Button>
       </>} />
       {cargando && <p role="status">Cargando reporte de compras…</p>}
       {error && <p role="alert">{error}</p>}
 
+      <PuntoGuia id="totales-reporte" />
       {resumenFinanzas && <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-5">
@@ -160,6 +162,7 @@ export default function ReportsPage() {
       <div className={usuario?.rol === "Encargado de Bodega" ? "grid gap-6" : "grid gap-6 lg:grid-cols-2"}>
         {usuario?.rol !== "Encargado de Bodega" && <Card>
           <CardHeader>
+            <PuntoGuia id="presupuestos-reporte" />
             <SectionTitle>Presupuestos por Estado</SectionTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
@@ -169,10 +172,10 @@ export default function ReportsPage() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                   <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis allowDecimals={false} stroke="var(--color-muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip
+                  <Tooltip 
                     cursor={{ fill: 'var(--color-muted)' }}
                     contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
-                    formatter={(value: any) => [`${value} presupuestos`, "Cantidad"]}
+                    formatter={(value: any) => [`${value} presupuestos`, "Cantidad"]} 
                   />
                   <Bar dataKey="cantidad" fill="#1e40af" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -185,6 +188,7 @@ export default function ReportsPage() {
 
         <Card>
           <CardHeader>
+            <PuntoGuia id="obras-reporte" />
             <SectionTitle>Obras por Estado</SectionTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
@@ -204,7 +208,7 @@ export default function ReportsPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
+                  <Tooltip 
                     contentStyle={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)', color: 'var(--color-foreground)' }}
                   />
                 </PieChart>

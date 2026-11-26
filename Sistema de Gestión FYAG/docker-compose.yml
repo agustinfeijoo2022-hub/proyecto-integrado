@@ -3,17 +3,17 @@ services:
   mongo:
     image: mongo:7
     ports:
-      - "127.0.0.1:27017:27017"
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
 
   postgres:
     image: postgres:16
     ports:
-      - "127.0.0.1:5432:5432"
+      - "5432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD para PostgreSQL local}
+      POSTGRES_PASSWORD: postgres123
       POSTGRES_DB: fyag_db
     volumes:
       - pg_data:/var/lib/postgresql/data

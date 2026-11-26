@@ -1,3 +1,4 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
@@ -37,9 +38,11 @@ export default function ClientesPage() {
   };
   const visibles = clientes?.filter(c => `${c.razonSocial} ${c.rut} ${c.contacto}`.toLowerCase().includes(busqueda.trim().toLowerCase()));
   return <div>
-    <PageHeader area="finanzas" title="Clientes" description="Consulta las empresas asociadas a presupuestos y obras."
+    <PageHeader area="finanzas" title="Clientes"
       actions={editar && <Button disabled={!clientes} onClick={() => setForm(nuevo)}>Nuevo cliente</Button>} />
+    <PuntoGuia id="buscar-clientes" />
     <div className="mb-5 max-w-md"><Field label="Buscar cliente"><Input value={busqueda} onChange={e => setBusqueda(e.target.value)} /></Field></div>
+    <PuntoGuia id="lista-clientes" />
     {error ? <p role="alert" className="fyag-error">{error}</p> : !visibles ? <p role="status">Cargando clientes…</p> :
       !visibles.length ? <p>No hay clientes para mostrar.</p> :
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{visibles.map(c => <li key={c.id} className="min-w-0 rounded-2xl border border-border bg-card p-5">

@@ -5,7 +5,7 @@ export const validarCreacionObra = (presupuesto?: any) => {
 
   // Convertimos el estado a texto y lo comparamos sin importar mayúsculas/minúsculas
   const estadoActual = String(presupuesto.estado).trim();
-
+  
   if (estadoActual !== "Aprobado") {
     return "La obra solo puede crearse desde un presupuesto aprobado.";
   }

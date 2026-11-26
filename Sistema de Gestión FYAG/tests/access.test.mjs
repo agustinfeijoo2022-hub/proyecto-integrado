@@ -6,10 +6,10 @@ const source = readFileSync(new URL("../src/app/access.ts", import.meta.url), "u
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } });
 const { permisos, inicioPorRol, puedeAcceder, destinoSiDenegado } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 const matriz = {
-  Gerencia: ["dashboard", "compras", "obras", "mis-obras", "presupuestos", "clientes", "facturacion", "cobranza", "reportes", "usuarios"],
-  Finanzas: ["dashboard", "catalogo", "compras", "solicitudes", "presupuestos", "clientes", "facturacion", "cobranza", "reportes"],
-  "Encargado de Bodega": ["dashboard", "catalogo", "compras", "recepcion", "obras", "reportes"],
-  Técnico: ["mis-obras"],
+  Gerencia: ["dashboard", "catalogo", "compras", "obras", "mis-obras", "presupuestos", "clientes", "facturacion", "cobranza", "reportes", "usuarios", "solicitudes-presupuesto", "notificaciones"],
+  Finanzas: ["dashboard", "catalogo", "compras", "solicitudes", "presupuestos", "clientes", "facturacion", "cobranza", "reportes", "notificaciones"],
+  "Encargado de Bodega": ["dashboard", "catalogo", "compras", "recepcion", "obras", "reportes", "notificaciones"],
+  Técnico: ["mis-obras", "notificaciones"],
 };
 for (const [rol, esperados] of Object.entries(matriz)) {
   test(`Menú y autorización de ${rol}: matriz exacta`, () => {
@@ -20,10 +20,10 @@ for (const [rol, esperados] of Object.entries(matriz)) {
     }
   });
 }
-test("Técnico: login y todas las rutas administrativas redirigen a /app/mis-obras", () => {
+test("Técnico: Mis Tareas y Notificaciones disponibles; otras rutas redirigen a /app/mis-obras", () => {
   assert.equal(inicioPorRol("Técnico"), "/app/mis-obras");
   for (const [modulo, roles] of Object.entries(permisos)) {
-    assert.equal(destinoSiDenegado("Técnico", roles), modulo === "mis-obras" ? null : "/app/mis-obras");
+    assert.equal(destinoSiDenegado("Técnico", roles), ["mis-obras", "notificaciones"].includes(modulo) ? null : "/app/mis-obras");
   }
 });
 test("Sin sesión no se monta el layout protegido", () => {

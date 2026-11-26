@@ -1,4 +1,4 @@
-import type { CambiosObra, ObraDB } from "@/types";
+import type { CambiosObra, ObraDB, PresupuestoDB } from "@/types";
 
 export interface Articulo {
   _id: string;
@@ -72,16 +72,7 @@ export async function obtenerCompras(signal?: AbortSignal): Promise<Compra[]> {
   return api<Compra[]>("/compras", { signal });
 }
 
-export interface PresupuestoDB {
-  id: number;
-  folio: string;
-  cliente_id: string;
-  cliente_nombre?: string | null;
-  fecha: string;
-  tipo: string;
-  total: number;
-  estado: string;
-}
+export type { PresupuestoDB } from "@/types";
 
 export async function obtenerPresupuestos(): Promise<PresupuestoDB[]> {
   return api<PresupuestoDB[]>("/presupuestos");

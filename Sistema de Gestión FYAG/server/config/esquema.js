@@ -56,7 +56,47 @@ export async function prepararEsquema(pool) {
 
     CREATE INDEX IF NOT EXISTS facturas_obra_idx ON facturas(obra_id);
     CREATE INDEX IF NOT EXISTS pagos_factura_idx ON pagos(factura_id);
+    ALTER TABLE obras ADD COLUMN IF NOT EXISTS prioridad TEXT NOT NULL DEFAULT 'Normal'
+      CHECK (prioridad IN ('Alta', 'Normal', 'Baja'));
     ALTER TABLE obras ADD COLUMN IF NOT EXISTS historial JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+    CREATE TABLE IF NOT EXISTS notificaciones (
+      id SERIAL PRIMARY KEY,
+      destinatario TEXT NOT NULL,
+      tipo TEXT NOT NULL CHECK (tipo IN ('cotizacion', 'presupuesto', 'obra')),
+      titulo TEXT NOT NULL,
+      mensaje TEXT NOT NULL,
+      cliente_id VARCHAR(50) REFERENCES clientes(id),
+      obra_id INTEGER REFERENCES obras(id),
+      creada_en TIMESTAMPTZ NOT NULL DEFAULT now(),
+      leida_en TIMESTAMPTZ
+    );
+    ALTER TABLE notificaciones
+      ADD COLUMN IF NOT EXISTS cotizacion JSONB,
+      ADD COLUMN IF NOT EXISTS presupuesto_id INTEGER REFERENCES presupuestos(id);
+    ALTER TABLE presupuestos
+      ADD COLUMN IF NOT EXISTS solicitud_id INTEGER REFERENCES notificaciones(id),
+      ADD COLUMN IF NOT EXISTS partidas JSONB NOT NULL DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS materiales_previstos JSONB NOT NULL DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS instrucciones JSONB;
+    ALTER TABLE obras
+      ADD COLUMN IF NOT EXISTS materiales_previstos JSONB NOT NULL DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS instrucciones JSONB;
+
+    CREATE INDEX IF NOT EXISTS notificaciones_bandeja_idx ON notificaciones(destinatario, id DESC);
+    CREATE INDEX IF NOT EXISTS notificaciones_pendientes_idx ON notificaciones(destinatario) WHERE leida_en IS NULL;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS notificaciones_aprobacion_idx
+      ON notificaciones(presupuesto_id) WHERE destinatario='Gerencia' AND presupuesto_id IS NOT NULL;
+
+    INSERT INTO notificaciones (destinatario,tipo,titulo,mensaje,cliente_id,presupuesto_id)
+    SELECT 'Gerencia','presupuesto','Presupuesto pendiente de aprobación: ' || p.folio,
+      'Finanzas envió un presupuesto para ' || c.razon_social || '. Revísalo en Presupuestos.',
+      c.id,p.id
+    FROM presupuestos p JOIN clientes c
+      ON c.id=CASE WHEN p.cliente_id ~ '^[0-9]+$' THEN 'c' || p.cliente_id ELSE p.cliente_id END
+    WHERE p.estado='Enviado'
+    ON CONFLICT DO NOTHING;
 
     ALTER TABLE auditoria
       ADD COLUMN IF NOT EXISTS usuario TEXT,

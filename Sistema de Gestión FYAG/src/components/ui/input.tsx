@@ -2,12 +2,12 @@ import { forwardRef, type InputHTMLAttributes, type SelectHTMLAttributes } from 
 import { cn } from "@/lib/utils";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(({ className, ...props }, ref) => (
-  <input ref={ref} className={cn("h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none placeholder:text-muted-foreground focus:border-info focus:ring-2 focus:ring-info/10", className)} {...props} />
+  <input ref={ref} className={cn("h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20", className)} {...props} />
 ));
 Input.displayName = "Input";
 
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(({ className, children, ...props }, ref) => (
-  <select ref={ref} className={cn("h-10 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-info focus:ring-2 focus:ring-info/10", className)} {...props}>{children}</select>
+  <select ref={ref} className={cn("h-10 w-full rounded-lg border border-border bg-card px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20", className)} {...props}>{children}</select>
 ));
 Select.displayName = "Select";
 

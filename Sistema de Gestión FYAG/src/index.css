@@ -4,22 +4,22 @@
 
 @theme {
   --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
-
+  
   /* PALETA CLARA Y MODERNA */
-  --color-primary: #2563eb;
+  --color-primary: #2563eb; 
   --color-primary-foreground: #ffffff;
-  --color-sidebar: #1e293b;
-  --color-foreground: #334155;
-  --color-background: #f8fafc;
+  --color-sidebar: #1e293b; 
+  --color-foreground: #334155; 
+  --color-background: #f8fafc; 
   --color-app: #f8fafc;
-  --color-border: #cbd5e1;
+  --color-border: #cbd5e1; 
   --color-input: #e2e8f0;
   --color-ring: #3b82f6;
   --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
-  --color-card: #ffffff;
+  --color-card: #ffffff; 
   --color-card-foreground: #1e293b;
-  --color-destructive: #ef4444;
+  --color-destructive: #ef4444; 
   --color-destructive-foreground: #ffffff;
   --color-accent: #eff6ff;
   --color-accent-foreground: #1d4ed8;
@@ -41,6 +41,7 @@
 
 /* MODO OSCURO */
 .dark {
+  color-scheme: dark;
   --color-foreground: #f8fafc;
   --color-background: #0f172a;
   --color-app: #020617;
@@ -53,7 +54,7 @@
   --color-secondary-foreground: #f8fafc;
   --color-accent: #1e3a8a;
   --color-accent-foreground: #eff6ff;
-  --color-primary: #3b82f6;
+  --color-primary: #3b82f6; 
 }
 
 @layer base {
@@ -122,11 +123,86 @@
   --color-surface: #223129;
 }
 
-html.fyag-texto-grande {
-  font-size: 118.75%;
+html[data-fyag-texto="grande"] {
+  font-size: 112.5%;
+}
+
+html[data-fyag-texto="muy-grande"] {
+  font-size: 125%;
 }
 
 .fyag-workspace :where(a, button, input, select, textarea):focus-visible {
   outline: 2px solid var(--color-primary-dark);
   outline-offset: 2px;
+}
+
+.fyag-photo-frame {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  max-height: 15rem;
+  background: linear-gradient(135deg, var(--color-muted), var(--color-card));
+}
+
+.fyag-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+@media (min-width: 64rem) {
+  .fyag-photo-frame { aspect-ratio: auto; max-height: none; }
+}
+
+.dark .fyag-photo-frame:not(.fyag-photo-login) .fyag-photo {
+  filter: brightness(.76) saturate(.86);
+}
+
+.fyag-photo-frame.fyag-photo-login {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  max-height: none;
+  aspect-ratio: auto;
+  background: #153d30;
+}
+
+.fyag-photo-login::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(155deg, rgb(8 39 30 / 87%), rgb(10 39 30 / 66%) 52%, rgb(8 34 26 / 94%));
+}
+
+
+.fyag-portada-sombra {
+  background: linear-gradient(90deg, rgb(5 22 15 / 96%) 0%, rgb(5 22 15 / 83%) 45%, rgb(5 22 15 / 43%) 100%),
+    linear-gradient(0deg, rgb(5 22 15 / 84%), transparent 35%);
+}
+
+.fyag-portada-foto {
+  animation: fyag-portada-zoom 4.8s ease-out both;
+}
+
+.fyag-portada-foto:nth-child(2) {
+  opacity: 0;
+  animation: fyag-portada-segunda 4.8s ease-out both;
+}
+
+@keyframes fyag-portada-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.06); }
+}
+
+@keyframes fyag-portada-segunda {
+  0%, 45% { opacity: 0; transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fyag-portada-foto { animation: none; }
 }

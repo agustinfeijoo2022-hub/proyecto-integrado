@@ -1,3 +1,4 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { useEffect, useState, type FormEvent } from "react";
 import { ShoppingCart, Search, CheckCircle2, Truck, ReceiptText } from "lucide-react";
 import { api, obtenerArticulos, obtenerCompras, mensajeError, type Articulo, type Compra } from "@/lib/api";
@@ -12,7 +13,7 @@ const pesos = (v: number) => new Intl.NumberFormat("es-CL", { style: "currency",
 export default function ComprasPage() {
   const rol = useAppStore(state => state.usuario?.rol);
   const puedeRegistrar = rol === "Finanzas";
-
+  
   const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [compras, setCompras] = useState<Compra[]>([]);
   const [form, setForm] = useState(vacio);
@@ -66,13 +67,13 @@ export default function ComprasPage() {
   }
 
   return <div className="fyag-page">
-    <PageHeader title="Compras" description="Revisa los movimientos de abastecimiento y su estado de recepción."
+    <PageHeader area="bodega" title="Compras"
       actions={rol === "Encargado de Bodega" && (
         <Link to="/app/recepcion" className="fyag-secondary hover:bg-muted"><Truck className="size-4" /> Ir a recepción</Link>
       )} />
     {mensaje && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-200">{mensaje}</p>}
     {errorCarga && <div className="fyag-error" role="alert">{errorCarga}<button onClick={() => setIntento(i => i + 1)} className="ml-3 underline">Reintentar</button></div>}
-
+    
     {puedeRegistrar && <Dialog open={abierto} onOpenChange={open => { if (!guardando) { setAbierto(open); setError(""); } }}>
       <DialogTrigger asChild><button type="button" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-dark"><ShoppingCart className="size-4" /> Nueva compra</button></DialogTrigger>
       <DialogContent className="max-h-[90dvh] w-[min(94vw,850px)] max-w-none overflow-y-auto">
@@ -88,7 +89,7 @@ export default function ComprasPage() {
           <div><label className="fyag-label" htmlFor="descuento">Descuento (%)</label><input id="descuento" type="number" min="0" max="100" step="any" className="fyag-input" value={form.descuento} onChange={e => setForm({ ...form, descuento: e.target.value })} /></div>
         </fieldset>{error && <p role="alert" className="fyag-error mt-5">{error}</p>}
       </section>
-
+      
       <aside className="rounded-2xl bg-muted p-4 dark:bg-muted">
         <h2 className="text-lg font-bold">Resumen de compra</h2>
         <p className="fyag-subtitle">Importes calculados automáticamente.</p>
@@ -105,8 +106,9 @@ export default function ComprasPage() {
         </form>
       </DialogContent>
     </Dialog>}
-
+    
     <section aria-labelledby="movimientos">
+      <PuntoGuia id="movimientos-compras" />
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 id="movimientos" className="text-2xl font-semibold">Últimos movimientos</h2>
@@ -131,6 +133,7 @@ export default function ComprasPage() {
           </label>
         </div>
       </div>
+      <PuntoGuia id="lista-compras" />
       {cargando ? <p role="status" className="p-6 text-muted-foreground">Cargando movimientos…</p>
         : errorCarga ? <p className="p-6 text-muted-foreground">Reintenta la conexión para consultar el historial.</p>
         : !filtradas.length ? <p className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">{compras.length ? "No hay compras que coincidan con los filtros." : "Todavía no hay compras registradas."}</p>

@@ -22,7 +22,14 @@ export interface ItemPresupuesto {
   precioUnitario: number;
 }
 
+export type MaterialPrevisto = { codigo: string; cantidad: number };
+export type InstruccionesObra = { trabajo: string; alcance: string; plazo?: string | null; materiales_solicitados?: string | null };
+
 export interface PresupuestoDB {
+  solicitud_id?: number;
+  partidas?: Omit<ItemPresupuesto, "id">[];
+  materiales_previstos?: MaterialPrevisto[];
+  instrucciones?: InstruccionesObra | null;
   id: number;
   folio: string;
   cliente_id: string;
@@ -33,7 +40,13 @@ export interface PresupuestoDB {
   estado: string;
 }
 
+export const prioridadesObra = ["Baja", "Normal", "Alta"] as const;
+export type PrioridadObra = (typeof prioridadesObra)[number];
+
 export interface ObraDB {
+  materiales_previstos?: MaterialPrevisto[];
+  instrucciones?: InstruccionesObra | null;
+  prioridad?: PrioridadObra;
   id: number;
   codigo: string;
   nombre: string;
@@ -56,6 +69,6 @@ export interface Usuario {
   rol: Rol;
   tecnicoId?: string;
 }
-export type CambiosObra = Partial<Pick<ObraDB, "tecnico_id" | "estado" | "avance">> & {
+export type CambiosObra = Partial<Pick<ObraDB, "tecnico_id" | "estado" | "avance" | "prioridad">> & {
   materiales?: { codigo: string; cantidad: number }[];
 };

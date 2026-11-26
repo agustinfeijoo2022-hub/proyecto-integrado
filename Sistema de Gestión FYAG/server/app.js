@@ -1,3 +1,4 @@
+import { crearNotificacionesRoutes } from "./routes/notificacionesRoutes.js";
 import { crearComercialRoutes } from "./routes/comercialRoutes.js";
 import express from "express"
 import cors from "cors"
@@ -28,10 +29,10 @@ class AppError extends Error {
 
 export function createApp(Articulo, env = process.env, auditoria, pgPool) {
   const app = express()
-
-  app.use(helmet())
+  
+  app.use(helmet()) 
   app.disable("x-powered-by")
-
+  
   const origin = env.FRONTEND_ORIGIN || "http://localhost:8443"
   const secure = env.COOKIE_SECURE === "true"
   const sesiones = new Map()
@@ -125,7 +126,7 @@ export function createApp(Articulo, env = process.env, auditoria, pgPool) {
 
   // Defensa central
   app.use("/api", (req, res, next) => {
-    if (req.usuario.rol === "Técnico" && !/^\/(obras|solicitudes|devoluciones|consumos)(\/|$)/.test(req.path)) {
+    if (req.usuario.rol === "Técnico" && !/^\/(obras|solicitudes|devoluciones|consumos|notificaciones)(\/|$)/.test(req.path)) {
         return next(new AppError("Solo tienes acceso a Mis Tareas.", 403));
     }
     if (req.usuario.rol === "Gerencia" && !["GET", "HEAD", "OPTIONS"].includes(req.method) && /^\/(articulos|compras)(\/|$)/.test(req.path))
@@ -205,12 +206,12 @@ export function createApp(Articulo, env = process.env, auditoria, pgPool) {
       const { codigoArticulo, cantidad, proveedor, monto, descuento = 0 } = req.body || {}
       if (!texto(codigoArticulo) || !texto(proveedor) || !numero(cantidad) || cantidad <= 0 || !numero(monto) || !Number.isSafeInteger(monto) || !numero(descuento) || descuento > 100)
         return next(new AppError("Compra inválida: revisa artículo, proveedor, cantidad, monto y descuento.", 400))
-
+      
       const neto = Math.round(monto * (1 - descuento / 100))
       const iva = Math.round(neto * 0.19), total = neto + iva
-
-      const compra = {
-        id: randomUUID(), proveedor: proveedor.trim(), cantidad, monto, descuento, neto, iva, total, usuarioId: req.usuario.id, fecha: new Date(), recibida: false
+      
+      const compra = { 
+        id: randomUUID(), proveedor: proveedor.trim(), cantidad, monto, descuento, neto, iva, total, usuarioId: req.usuario.id, fecha: new Date(), recibida: false 
       };
 
       const articulo = await Articulo.findOneAndUpdate(
@@ -220,7 +221,7 @@ export function createApp(Articulo, env = process.env, auditoria, pgPool) {
       );
 
       if (!articulo) return next(new AppError("El artículo no existe.", 409))
-
+      
       res.status(201).json({ mensaje: "Compra registrada. Pendiente de recepción.", articulo: vista(articulo), compra: { ...compra, articuloId: String(articulo._id), codigoArticulo: articulo.codigo, nombreArticulo: articulo.nombre, unidad: articulo.unidad }, total })
     } catch (error) { next(error) }
   });
@@ -367,8 +368,9 @@ export function createApp(Articulo, env = process.env, auditoria, pgPool) {
   }
 
   // --- RUTAS MODULARES (PRESUPUESTOS Y OBRAS) ---
+  if (pgPool) app.use("/api/notificaciones", crearNotificacionesRoutes(pgPool));
   app.use("/api", crearComercialRoutes(pgPool));
-  app.use("/api/presupuestos", crearPresupuestosRoutes(pgPool))
+  app.use("/api/presupuestos", crearPresupuestosRoutes(pgPool, Articulo))
   const tecnicos = usuarios.map(({ user }) => user).filter(user => user.rol === "Técnico")
     .map(({ tecnicoId: id, nombre }) => ({ id, nombre }));
   app.use("/api/obras", crearObrasRoutes(pgPool, Articulo, tecnicos))

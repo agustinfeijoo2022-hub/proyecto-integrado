@@ -14,8 +14,8 @@ export const shortDate = (value: string | Date | null | undefined) => {
 
   // Si ya tiene formato ISO (ej. "2026-11-18T00:00:00.000Z"), lo usa directo.
   // Si viene como texto simple ("2026-11-18"), le agrega el mediodía.
-  const dateString = typeof value === "string" && value.includes("T")
-    ? value
+  const dateString = typeof value === "string" && value.includes("T") 
+    ? value 
     : `${value}T12:00:00`;
 
   const date = new Date(dateString);
@@ -23,9 +23,9 @@ export const shortDate = (value: string | Date | null | undefined) => {
   // Si la fecha es inválida o viene vacía, muestra un guion en lugar de romper la app.
   if (isNaN(date.getTime())) return "—";
 
-  return new Intl.DateTimeFormat("es-CL", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
+  return new Intl.DateTimeFormat("es-CL", { 
+    day: "2-digit", 
+    month: "short", 
+    year: "numeric" 
   }).format(date);
 };

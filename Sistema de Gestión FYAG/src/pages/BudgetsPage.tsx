@@ -1,4 +1,6 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { useState, useEffect } from "react";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { Check, Plus, FileText, Download, X } from "lucide-react";
 import { toast } from "sonner";
 import BudgetForm from "@/components/BudgetForm";
@@ -22,13 +24,17 @@ import { generarPDF } from "@/lib/pdfGenerator";
 
 export default function BudgetsPage() {
   const [open, setOpen] = useState(false);
-
+  const [parametros, setParametros] = useSearchParams();
+  const clienteInicial = parametros.get("cotizar") ?? "";
+  const solicitudInicial = Number(parametros.get("solicitud")) || undefined;
+  const antecedentes = useLocation().state?.antecedentes;
+  
   const presupuestos = useAppStore((state) => state.presupuestos);
   const cargando = useAppStore((state) => state.cargandoPresupuestos);
   const fetchPresupuestos = useAppStore((state) => state.fetchPresupuestos);
   const usuario = useAppStore((state) => state.usuario);
   const actualizar = useAppStore((state) => state.actualizarPresupuesto);
-
+  
   const { puedeAprobarPresupuestos } = usePermissions();
 
   useEffect(() => {
@@ -36,12 +42,24 @@ export default function BudgetsPage() {
   }, [fetchPresupuestos]);
 
   const puedeCrear = usuario?.rol === "Finanzas";
+  const revisarId = usuario?.rol === "Gerencia" ? Number(parametros.get("revisar")) : 0;
+  const visibles = revisarId ? presupuestos.filter(p => p.id === revisarId) : presupuestos;
+  function cambiarApertura(abrir: boolean) {
+    setOpen(abrir);
+    if (!abrir && clienteInicial) setParametros(actuales => {
+      const nuevos = new URLSearchParams(actuales);
+      nuevos.delete("cotizar");
+      nuevos.delete("solicitud");
+      return nuevos;
+    }, { replace: true });
+  }
   const puedeExportar = ["Gerencia", "Finanzas"].includes(usuario?.rol ?? "");
 
   const handleAprobar = async (id: number, folio: string) => {
     const confirmado = window.confirm(`¿Aprobar el presupuesto ${folio}?`);
     if (!confirmado) return;
     if (!await actualizar(id, { estado: "Aprobado" })) return toast.error("No se pudo aprobar el presupuesto.");
+    window.dispatchEvent(new Event("fyag:notificaciones"));
     toast.success(`Presupuesto ${folio} aprobado por Gerencia.`);
   };
 
@@ -49,6 +67,7 @@ export default function BudgetsPage() {
     const confirmado = window.confirm(`¿Rechazar el presupuesto ${folio}? Esta acción no se puede deshacer.`);
     if (!confirmado) return;
     if (!await actualizar(id, { estado: "Rechazado" })) return toast.error("No se pudo rechazar el presupuesto.");
+    window.dispatchEvent(new Event("fyag:notificaciones"));
     toast.success(`Presupuesto ${folio} ha sido rechazado.`);
   };
 
@@ -76,7 +95,6 @@ export default function BudgetsPage() {
     <div>
       <PageHeader area="finanzas"
         title="Presupuestos"
-        description="Gestión comercial y aprobación de propuestas."
         actions={
           <div className="flex items-center gap-2">
             {puedeExportar && (
@@ -91,16 +109,22 @@ export default function BudgetsPage() {
             )}
 
             {puedeCrear && (
-              <Dialog open={open} onOpenChange={setOpen}>
+              <Dialog open={open || Boolean(clienteInicial)} onOpenChange={cambiarApertura}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="size-4" /> Nuevo presupuesto
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-3xl">
+                <DialogContent className="max-h-[90dvh] max-w-3xl overflow-y-auto">
                   <DialogTitle>Nuevo presupuesto</DialogTitle>
                   <DialogDescription>Agrega servicios o materiales. El total se calcula automáticamente.</DialogDescription>
-                  <BudgetForm onDone={() => { setOpen(false); fetchPresupuestos(); }} />
+                  {clienteInicial && typeof antecedentes === "string" && (
+                    <details className="mt-3 rounded-xl border border-border bg-muted p-3">
+                      <summary className="cursor-pointer font-semibold">Antecedentes enviados por Gerencia</summary>
+                      <p className="mt-2 whitespace-pre-wrap break-words text-sm">{antecedentes}</p>
+                    </details>
+                  )}
+                  <BudgetForm key={clienteInicial} clienteInicial={clienteInicial} solicitudId={solicitudInicial} onDone={() => { cambiarApertura(false); void fetchPresupuestos(); }} />
                 </DialogContent>
               </Dialog>
             )}
@@ -108,15 +132,21 @@ export default function BudgetsPage() {
         }
       />
 
+      {!!revisarId && <Button variant="outline" className="mb-4" onClick={() => setParametros(actuales => {
+        const nuevos = new URLSearchParams(actuales);
+        nuevos.delete("revisar");
+        return nuevos;
+      }, { replace: true })}>Ver todos los presupuestos</Button>}
+      <PuntoGuia id="lista-presupuestos" />
       <Card className="overflow-hidden">
         {cargando ? (
           <div className="p-12 text-center text-muted-foreground">Cargando presupuestos desde la base de datos...</div>
-        ) : presupuestos.length === 0 ? (
+        ) : visibles.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 p-12 text-center">
             <FileText className="size-10 text-muted-foreground" />
-            <p className="font-medium">No hay presupuestos registrados en PostgreSQL</p>
+            <p className="font-medium">{revisarId ? "No se encontró el presupuesto del aviso." : "No hay presupuestos registrados."}</p>
             <p className="text-sm text-muted-foreground">
-              {puedeCrear ? "Crea el primero con el botón de arriba." : "Cuando se cree uno, aparecerá aquí."}
+              {!revisarId && (puedeCrear ? "Crea el primero con el botón de arriba." : "Cuando se cree uno, aparecerá aquí.")}
             </p>
           </div>
         ) : (
@@ -134,13 +164,22 @@ export default function BudgetsPage() {
                 </TR>
               </THead>
               <TBody>
-                {presupuestos.map((item) => {
+                {visibles.map((item) => {
                   // Buscamos el cliente aceptando el ID con o sin la letra "c"
-
+                              
                   return (
                     <TR key={item.id}>
                       <TD className="font-semibold text-primary whitespace-nowrap">{item.folio}</TD>
-                      <TD className="min-w-[150px]">{item.cliente_nombre ?? item.cliente_id}</TD>
+                      <TD className="min-w-[150px]">{item.cliente_nombre ?? item.cliente_id}
+                        {(item.instrucciones || item.partidas?.length || item.materiales_previstos?.length) ? (
+                          <details className="mt-2 min-w-48 text-sm">
+                            <summary className="cursor-pointer text-primary">Ver alcance y partidas</summary>
+                            {item.instrucciones && <p className="my-2 whitespace-pre-wrap">{item.instrucciones.alcance}</p>}
+                            {item.partidas?.map((p, i) => <p key={i}>{p.descripcion} · {p.cantidad} × {currency(p.precioUnitario)}</p>)}
+                            {item.materiales_previstos?.map(m => <p key={m.codigo}>{m.codigo} · {m.cantidad} unidades previstas</p>)}
+                          </details>
+                        ) : null}
+                      </TD>
                       <TD className="whitespace-nowrap">{shortDate(item.fecha)}</TD>
                       <TD className="whitespace-nowrap">{item.tipo}</TD>
                       <TD className="font-semibold whitespace-nowrap">{currency(item.total)}</TD>

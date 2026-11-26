@@ -1,3 +1,4 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { useState, useEffect } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -12,7 +13,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { api, mensajeError } from "@/lib/api";
 import { shortDate } from "@/lib/utils";
 import { useAppStore } from "@/store/useAppStore";
-import type { EstadoObra } from "@/types";
+import { prioridadesObra, type EstadoObra, type PrioridadObra } from "@/types";
 import MaterialCatalogField, { type ArticuloMaterial } from "@/components/MaterialCatalogField";
 import { TablaMateriales, type MaterialObra } from "@/components/TablaMateriales";
 import WorkMaterialsManager from "@/components/WorkMaterialsManager";
@@ -38,11 +39,14 @@ export default function WorkDetailPage() {
   const obra = obras.find((item) => item.id === Number(id));
   const [tecnicos, setTecnicos] = useState<{ id: string; nombre: string }[]>([]);
   const [tecnico, setTecnico] = useState("");
+  const [prioridad, setPrioridad] = useState<PrioridadObra>("Normal");
   const [catalogo, setCatalogo] = useState<ArticuloMaterial[]>([]);
   const [resumen, setResumen] = useState<MaterialObra[]>([]);
   const [errorMateriales, setErrorMateriales] = useState("");
   const [versionMateriales, setVersionMateriales] = useState(0);
   const obraId = obra?.id;
+  const tecnicoAsignado = obra?.tecnico_id;
+  const previstos = obra?.materiales_previstos;
 
   useEffect(() => {
     if (!obraId) return;
@@ -79,15 +83,23 @@ export default function WorkDetailPage() {
   useEffect(() => {
     if (obra) {
       setTecnico(obra.tecnico_id || "");
+      setPrioridad(obra.prioridad ?? "Normal");
       setAvance(String(obra.avance));
     }
   }, [obra]);
+
+  useEffect(() => {
+    if (!obraId || tecnicoAsignado) return;
+    setMateriales(previstos?.length
+      ? previstos.map(m => ({ codigo: m.codigo, cantidad: String(m.cantidad) }))
+      : [{ codigo: "", cantidad: "" }]);
+  }, [obraId, tecnicoAsignado, previstos]);
 
   // Validaciones de seguridad DESPUÉS de los hooks
   const regreso = usuario?.rol === "Técnico" ? "/app/mis-obras" : "/app/obras";
   if (!cargado) return <p role="status">Cargando obra…</p>;
   if (!obra) return <Navigate to={regreso} replace />;
-
+  
   if (usuario?.rol === "Técnico" && obra.tecnico_id !== usuario.tecnicoId) {
     return <Navigate to={regreso} replace />;
   }
@@ -124,19 +136,20 @@ export default function WorkDetailPage() {
 
   return (
     <div>
-      <PageHeader area="seguimiento"
-        title={`${obra.codigo} · ${obra.nombre}`}
-        description={`${obra.cliente_nombre || obra.cliente_id} · Inicio ${shortDate(obra.inicio)}`}
-        actions={<StatusBadge status={obra.estado} />}
+      <PageHeader area="seguimiento" 
+        title={`${obra.codigo} · ${obra.nombre}`} 
+        description={`${obra.cliente_nombre || obra.cliente_id} · Inicio ${shortDate(obra.inicio)}`} 
+        actions={<StatusBadge status={obra.estado} />} 
       />
-
+      
+      <PuntoGuia id="estado-obra" />
       <Card>
         <CardContent className="p-5 sm:p-7">
-          <div className="grid grid-cols-4">
+          <div className="grid grid-cols-2 gap-y-4 sm:grid-cols-4">
             {steps.map((step, index) => (
               <div key={step} className="relative text-center">
-                <div className={`absolute left-0 top-4 h-0.5 w-full ${index <= current ? "bg-primary" : "bg-border"} ${index === 0 ? "left-1/2 w-1/2" : index === 3 ? "w-1/2" : ""}`} />
-                <div className={`relative mx-auto grid size-8 place-items-center rounded-full border-2 ${index <= current ? "border-primary bg-primary text-white" : "border-border bg-white dark:bg-slate-800 text-muted-foreground"}`}>
+                <div className={`absolute left-0 top-4 hidden h-0.5 sm:block w-full ${index <= current ? "bg-primary" : "bg-border"} ${index === 0 ? "left-1/2 w-1/2" : index === 3 ? "w-1/2" : ""}`} />
+                <div className={`relative mx-auto grid size-8 place-items-center rounded-full border-2 ${index <= current ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
                   {index < current ? <Check className="size-4" /> : <span className="text-xs font-bold">{index + 1}</span>}
                 </div>
                 <div className={`mt-2 text-xs font-medium ${index <= current ? "text-primary" : "text-muted-foreground"}`}>{step}</div>
@@ -145,10 +158,10 @@ export default function WorkDetailPage() {
           </div>
         </CardContent>
       </Card>
-
+      
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader><SectionTitle>Información de la obra</SectionTitle></CardHeader>
+          <CardHeader><PuntoGuia id="datos-obra" /><SectionTitle>Información de la obra</SectionTitle></CardHeader>
           <CardContent>
             <div className="grid gap-5 sm:grid-cols-2">
               <Info label="Tipo de servicio" value={obra.tipo} />
@@ -163,10 +176,21 @@ export default function WorkDetailPage() {
             </div>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardHeader><SectionTitle>Gestión operacional</SectionTitle></CardHeader>
+          <CardHeader><PuntoGuia id="gestion-obra" /><SectionTitle>Gestión operacional</SectionTitle></CardHeader>
           <CardContent className="grid gap-4">
+            {usuario?.rol === "Encargado de Bodega" ? (
+              <div className="grid gap-2 rounded-xl border border-border bg-app p-3">
+                <Field label="Prioridad de la obra">
+                  <Select value={prioridad} onChange={event => setPrioridad(event.target.value as PrioridadObra)}>
+                    {prioridadesObra.map(valor => <option key={valor}>{valor}</option>)}
+                  </Select>
+                </Field>
+                <Button type="button" variant="outline" disabled={guardando || prioridad === (obra.prioridad ?? "Normal")}
+                  onClick={() => void guardar({ prioridad }, "Prioridad guardada.")}>Guardar prioridad</Button>
+              </div>
+            ) : <Info label="Prioridad" value={obra.prioridad ?? "Normal"} />}
             {puedeGestionarObras ? (
               <Field label="Técnico asignado">
                 <Select value={tecnico} onChange={(event) => setTecnico(event.target.value)}>
@@ -184,7 +208,8 @@ export default function WorkDetailPage() {
               <>
                 {!obra.tecnico_id && (
                   <div className="grid gap-2">
-                    <p className="text-sm font-medium">Materiales que se descontarán al asignar</p>
+                    <p className="text-sm font-medium">Asignación de materiales</p>
+                    <p className="text-sm text-muted-foreground">Las cantidades indicadas se descuentan del stock al guardar la primera asignación.</p>
                     {materiales.map((item, indice) => (
                       <div key={indice} className="grid grid-cols-2 gap-2">
                         <MaterialCatalogField etiqueta={`Código del material ${indice + 1}`} catalogo={catalogo} codigo={item.codigo}
@@ -220,12 +245,33 @@ export default function WorkDetailPage() {
         </Card>
       </div>
 
+      <PuntoGuia id="instrucciones-obra" />
+      {(obra.instrucciones || !!obra.materiales_previstos?.length) && (
+        <Card className="my-6">
+          <CardHeader><SectionTitle>Instrucciones de la obra</SectionTitle></CardHeader>
+          <CardContent className="grid gap-3">
+            {obra.instrucciones && <>
+              <p className="font-semibold">{obra.instrucciones.trabajo}</p>
+              <p className="whitespace-pre-wrap break-words">{obra.instrucciones.alcance}</p>
+              {obra.instrucciones.plazo && <Info label="Fecha solicitada" value={shortDate(obra.instrucciones.plazo)} />}
+            </>}
+            {!!obra.materiales_previstos?.length && <div>
+              <p className="font-semibold">Materiales previstos</p>
+              <ul className="mt-1 list-inside list-disc">
+                {obra.materiales_previstos.map(item => <li key={item.codigo}>{item.codigo} · {item.cantidad}</li>)}
+              </ul>
+            </div>}
+          </CardContent>
+        </Card>
+      )}
+      <PuntoGuia id="materiales-obra" />
       <TablaMateriales materiales={resumen} error={errorMateriales} />
+      <PuntoGuia id="registro-materiales-obra" />
       {usuario?.rol === "Técnico" && ["En proceso", "Suspendida"].includes(obra.estado) &&
         <div className="mt-6"><WorkMaterialsManager obraId={obra.id} catalogo={catalogo} onMovimiento={refrescarMateriales} /></div>}
-
+      
       <Card className="mt-6">
-        <CardHeader><SectionTitle>Historial de cambios</SectionTitle></CardHeader>
+        <CardHeader><PuntoGuia id="historial-obra" /><SectionTitle>Historial de cambios</SectionTitle></CardHeader>
         <CardContent>
           <div className="space-y-5">
             {!obra.historial?.length && <Muted>Todavía no hay cambios registrados.</Muted>}

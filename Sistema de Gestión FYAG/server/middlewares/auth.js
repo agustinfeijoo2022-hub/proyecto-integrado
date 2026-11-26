@@ -28,9 +28,9 @@ export function validarEsquema(schema) {
   return (req, res, next) => {
     const resultado = schema.safeParse(req.body)
     if (!resultado.success) {
-      return res.status(400).json({
-        error: "Datos inválidos",
-        detalles: resultado.error.issues.map(e => `${e.path.join('.')}: ${e.message}`)
+      return res.status(400).json({ 
+        error: "Datos inválidos", 
+        detalles: resultado.error.issues.map(e => `${e.path.join('.')}: ${e.message}`) 
       })
     }
     req.body = resultado.data

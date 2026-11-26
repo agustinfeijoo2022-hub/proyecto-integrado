@@ -1,3 +1,4 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Download } from "lucide-react";
@@ -93,8 +94,8 @@ export default function CollectionsPage({ facturacion = false }: { facturacion?:
   const totalPendiente = facturas?.reduce((n,f) => n + f.saldo, 0) ?? 0;
   return <div>
     <PageHeader area="finanzas" title={facturacion ? "Facturación" : "Cobranza"}
-      description={facturacion ? "Facturas vinculadas a obras y sus montos registrados." : "Consulta saldos, vencimientos y pagos."}
       actions={facturacion && puedeRegistrar && <Button onClick={abrirFactura}>Nueva factura</Button>} />
+    <PuntoGuia id="filtro-facturas" />
     <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
       {!facturacion && facturas && <div className="rounded-xl border border-border bg-card px-5 py-3">
         <p className="text-sm text-muted-foreground">Saldo por cobrar</p>
@@ -104,6 +105,7 @@ export default function CollectionsPage({ facturacion = false }: { facturacion?:
         <option value="">Todos</option>{["Pendiente","Vencida","Pago parcial","Pagada"].map(s=><option key={s}>{s}</option>)}
       </Select></Field></div>
     </div>
+    <PuntoGuia id="lista-facturas" />
     {error ? <p role="alert" className="fyag-error">{error}</p> : !visibles ? <p role="status">Cargando facturas…</p> :
       !visibles.length ? <p>No hay facturas para mostrar.</p> :
       <ul className="grid gap-4 lg:grid-cols-2">{visibles.map(f=><li key={f.id} className="min-w-0 rounded-2xl border border-border bg-card p-5">

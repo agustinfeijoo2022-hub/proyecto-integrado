@@ -8,12 +8,12 @@ import { validarCreacionObra } from "@/lib/businessRules";
 import { useAppStore } from "@/store/useAppStore";
 import { api, mensajeError } from "@/lib/api";
 import type { PresupuestoDB } from "@/types";
-import { currency } from "@/lib/utils"; // <-- IMPORTANTE: Importamos el formateador de moneda
+
 
 export default function NewWorkDialog() {
   const [presupuestos, setPresupuestos] = useState<PresupuestoDB[]>([]);
   const agregarObra = useAppStore((state) => state.agregarObra);
-
+  
   const [open, setOpen] = useState(false);
   const [presupuestoId, setPresupuestoId] = useState("");
   const [nombre, setNombre] = useState("");
@@ -28,10 +28,11 @@ export default function NewWorkDialog() {
     }
   }, [open]);
 
-  const create = async () => {
-    const presupuesto = presupuestos.find((item) => item.id === Number(presupuestoId));
-    const error = validarCreacionObra(presupuesto);
+  const presupuesto = presupuestos.find((item) => item.id === Number(presupuestoId));
 
+  const create = async () => {
+    const error = validarCreacionObra(presupuesto);
+    
     if (error) return toast.error(error);
     if (!nombre.trim() || !presupuesto) return toast.error("Ingresa un nombre para la obra.");
 
@@ -45,7 +46,7 @@ export default function NewWorkDialog() {
     const exito = await agregarObra({
       codigo: `OB-${crypto.randomUUID().slice(0, 8)}`,
       nombre,
-      cliente_id: presupuesto.cliente_id,
+      cliente_id: presupuesto.cliente_id, 
       presupuesto_id: presupuesto.id,
       tipo: presupuesto.tipo,
       tecnico_id: null,
@@ -56,8 +57,8 @@ export default function NewWorkDialog() {
     setCargando(false);
     if (exito) {
       toast.success("Obra creada correctamente.");
-      setOpen(false);
-      setNombre("");
+      setOpen(false); 
+      setNombre(""); 
       setPresupuestoId("");
     } else {
       toast.error("Error al guardar la obra en PostgreSQL.");
@@ -72,41 +73,52 @@ export default function NewWorkDialog() {
       <DialogContent>
         <DialogTitle>Crear nueva obra</DialogTitle>
         <DialogDescription>Solo podrás utilizar presupuestos aprobados.</DialogDescription>
-
+        
         <div className="mt-6 grid gap-4">
           <Field label="Presupuesto de origen">
-            <Select
-              value={presupuestoId}
-              onChange={(event) => setPresupuestoId(event.target.value)}
+            <Select 
+              value={presupuestoId} 
+              onChange={(event) => {
+                setPresupuestoId(event.target.value);
+                const seleccionado = presupuestos.find(item => item.id === Number(event.target.value));
+                setNombre(seleccionado?.instrucciones?.trabajo ?? "");
+              }}
               disabled={cargando}
             >
               <option value="">{cargando ? "Cargando presupuestos..." : "Seleccionar presupuesto"}</option>
-
+              
               {/* Filtramos solo los aprobados y mostramos más detalles */}
               {presupuestos
                 .filter(p => p.estado === "Aprobado")
                 .map((item) => {
                   // Buscamos el nombre del cliente real usando el ID
                   const clienteNombre = item.cliente_nombre || item.cliente_id;
-
+                  
                   return (
                     <option key={item.id} value={item.id}>
-                      {item.folio} · {clienteNombre} · {item.tipo} ({currency(item.total)})
+                      {item.folio} · {clienteNombre} · {item.tipo}
                     </option>
                   );
                 })
               }
             </Select>
           </Field>
-
+          
+          {presupuesto && <div className="rounded-lg border border-border bg-muted p-3 text-sm">
+            {presupuesto.instrucciones && <p className="whitespace-pre-wrap">{presupuesto.instrucciones.alcance}</p>}
+            <p className="font-semibold">Materiales previstos</p>
+            {presupuesto.materiales_previstos?.length
+              ? <ul>{presupuesto.materiales_previstos.map(m => <li key={m.codigo}>{m.codigo} · {m.cantidad}</li>)}</ul>
+              : <p>Sin materiales previstos.</p>}
+          </div>}
           <Field label="Nombre de la obra">
-            <Input
-              value={nombre}
-              onChange={(event) => setNombre(event.target.value)}
-              placeholder="Ej. Ampliación cámara frigorífica"
+            <Input 
+              value={nombre} 
+              onChange={(event) => setNombre(event.target.value)} 
+              placeholder="Ej. Ampliación cámara frigorífica" 
             />
           </Field>
-
+          
           <Button onClick={create} disabled={cargando || !presupuestoId}>
             Crear obra
           </Button>

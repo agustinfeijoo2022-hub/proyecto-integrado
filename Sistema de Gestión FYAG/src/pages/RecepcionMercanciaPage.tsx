@@ -1,3 +1,4 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { useState, useEffect } from "react";
 import { PackageCheck, Truck, Package } from "lucide-react";
 import { toast } from "sonner";
@@ -50,7 +51,7 @@ export default function RecepcionMercanciaPage() {
       return;
     }
     setGuardando(true);
-
+    
     try {
       await api(`/compras/${compraSeleccionada.articuloId}/recibir/${compraSeleccionada.id}`, { method: "POST", body: JSON.stringify({ cantidad }) });
       toast.success("¡Mercancía recibida y stock actualizado!");
@@ -68,11 +69,11 @@ export default function RecepcionMercanciaPage() {
     <div className="fyag-page space-y-6">
       <PageHeader area="bodega"
         title="Recepción de Mercancía"
-        description="Registra el ingreso físico de los productos comprados por Finanzas."
       />
 
       <Card>
         <CardHeader>
+          <PuntoGuia id="orden-compra" />
           <SectionTitle>1. Selecciona la Orden de Compra</SectionTitle>
           <p className="text-sm text-muted-foreground">Elige el código del producto que acaba de llegar a la bodega.</p>
         </CardHeader>
@@ -103,6 +104,7 @@ export default function RecepcionMercanciaPage() {
         </CardContent>
       </Card>
 
+      <PuntoGuia id="cantidad-recibida" />
       {compraSeleccionada && (
         <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-900/10">
           <CardHeader>

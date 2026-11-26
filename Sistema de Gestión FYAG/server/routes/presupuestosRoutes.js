@@ -4,9 +4,9 @@ import { presupuestosController } from "../controllers/presupuestosController.js
 import { permitir, validarEsquema } from "../middlewares/auth.js"
 import { presupuestoSchema } from "../schemas.js"
 
-export function crearPresupuestosRoutes(pgPool) {
+export function crearPresupuestosRoutes(pgPool, Articulo) {
   const router = Router()
-  const ctrl = presupuestosController(pgPool)
+  const ctrl = presupuestosController(pgPool, Articulo)
 
   router.get("/", permitir("Gerencia", "Finanzas"), ctrl.obtenerTodos)
   router.get("/aprobados", permitir("Encargado de Bodega"), ctrl.obtenerAprobados)

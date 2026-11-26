@@ -100,8 +100,8 @@ export const obrasController = (pgPool, Articulo, tecnicos) => ({
       const { codigo, nombre, presupuesto_id, inicio, tecnico_id } = req.body;
       if (tecnico_id) return res.status(400).json({ error: "Asigna el técnico y los materiales desde el detalle de la obra." });
       const { rows } = await pgPool.query(
-        `INSERT INTO obras (codigo, nombre, cliente_id, presupuesto_id, tipo, inicio, estado, historial)
-         SELECT $1, $2, cliente_id, id, tipo, $4, 'En proceso', $5::jsonb
+        `INSERT INTO obras (codigo, nombre, cliente_id, presupuesto_id, tipo, inicio, estado, historial, materiales_previstos, instrucciones)
+         SELECT $1, $2, cliente_id, id, tipo, $4, 'En proceso', $5::jsonb, materiales_previstos, instrucciones
          FROM (SELECT * FROM presupuestos WHERE id = $3 AND estado = 'Aprobado' FOR SHARE) presupuesto
          RETURNING *`,
         [codigo, nombre, presupuesto_id, inicio, JSON.stringify([{ fecha: new Date(), detalle: "Obra creada con presupuesto aprobado" }])],
@@ -119,6 +119,9 @@ export const obrasController = (pgPool, Articulo, tecnicos) => ({
     let reservando = false;
     let confirmando = false;
     try {
+      const { prioridad } = req.body;
+      if (prioridad !== undefined && req.usuario.rol !== "Encargado de Bodega")
+        return res.status(403).json({ error: "Solo Bodega puede cambiar la prioridad de una obra." });
       if (!/^\d+$/.test(req.params.id)) return res.status(400).json({ error: "Identificador de obra inválido." });
       db = await pgPool.connect();
       await db.query("BEGIN");
@@ -180,12 +183,25 @@ export const obrasController = (pgPool, Articulo, tecnicos) => ({
       if (avanceGuardado !== undefined && avanceGuardado !== obra.avance) historial.push(`Avance informado: ${avanceGuardado}%`);
       if (estado && estado !== obra.estado) historial.push(`Estado actualizado a ${estado}`);
       if (tecnico_id && tecnico_id !== obra.tecnico_id) historial.push(`Técnico asignado: ${tecnico_id}`);
+      if (prioridad && prioridad !== obra.prioridad) historial.push(`Prioridad actualizada a ${prioridad}`);
       if (materiales.length) historial.push(`Materiales entregados: ${materiales.map(({ codigo, cantidad }) => `${codigo} × ${cantidad}`).join(", ")}`);
       const { rows } = await db.query(
         `UPDATE obras SET avance = COALESCE($1, avance), estado = COALESCE($2, estado),
-         tecnico_id = COALESCE($3, tecnico_id), historial = historial || $5::jsonb WHERE id = $4 RETURNING *`,
-        [avanceGuardado, estado, tecnico_id, obra.id, JSON.stringify(historial.map(detalle => ({ fecha: new Date(), detalle })))],
+         tecnico_id = COALESCE($3, tecnico_id), historial = historial || $5::jsonb,
+         prioridad = COALESCE($6, prioridad) WHERE id = $4 RETURNING *`,
+        [avanceGuardado, estado, tecnico_id, obra.id, JSON.stringify(historial.map(detalle => ({ fecha: new Date(), detalle }))), prioridad],
       );
+      if (tecnico_id && tecnico_id !== obra.tecnico_id) {
+        const instrucciones = obra.instrucciones;
+        const resumen = [obra.nombre + ".", `Prioridad: ${rows[0].prioridad ?? "Normal"}.`,
+          instrucciones?.alcance, instrucciones?.plazo && `Fecha solicitada: ${instrucciones.plazo}.`]
+          .filter(Boolean).join("\n\n");
+        await db.query(`
+          INSERT INTO notificaciones (destinatario,tipo,titulo,mensaje,obra_id)
+          VALUES ($1,'obra',$2,$3,$4)
+        `, [`tecnico:${tecnico_id}`, `Nueva obra asignada: ${obra.codigo}`,
+          resumen, obra.id]);
+      }
       confirmando = true;
       await db.query("COMMIT");
       if (reservando) {

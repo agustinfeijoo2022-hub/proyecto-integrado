@@ -1,3 +1,4 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -43,7 +44,7 @@ export default function ManagementDashboard() {
 
   return (
     <div className="space-y-6" aria-busy={loading}>
-      <PageHeader title="Panel gerencial" description="Consulta los montos acumulados y el estado actual de las obras." actions={
+      <PageHeader title="Panel gerencial" actions={
         <Button variant="outline" disabled={loading} onClick={() => refresh(value => value + 1)}>
           <RefreshCw className={loading ? "size-4 animate-spin" : "size-4"} /> Actualizar datos
         </Button>
@@ -53,6 +54,8 @@ export default function ManagementDashboard() {
           : "No se pudieron cargar los indicadores. Presiona Actualizar datos para reintentar."}
       </p>}
       {loading && !summary && <p role="status" className="text-muted-foreground">Cargando indicadores…</p>}
+      <PuntoGuia id="indicadores-gerencia" />
+      {!summary && <PuntoGuia id="grafico-gerencia" />}
       {summary && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -65,6 +68,7 @@ export default function ManagementDashboard() {
               </Card>
             ))}
           </div>
+          <PuntoGuia id="grafico-gerencia" />
           <Card>
             <CardHeader><SectionTitle>Obras por estado</SectionTitle></CardHeader>
             <CardContent>

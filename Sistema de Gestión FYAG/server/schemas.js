@@ -6,7 +6,17 @@ export const presupuestoSchema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe tener formato YYYY-MM-DD"),
   tipo: z.string().min(3).max(100),
   total: z.number().positive("El total debe ser mayor a cero"),
-  estado: z.enum(["Borrador", "Enviado"]).optional()
+  estado: z.enum(["Borrador", "Enviado"]).optional(),
+  solicitud_id: z.number().int().positive().max(2147483647).optional(),
+  partidas: z.array(z.object({
+    descripcion: z.string().trim().min(1).max(250),
+    cantidad: z.number().positive().max(1e9),
+    precioUnitario: z.number().positive().max(2147483647),
+  })).min(1).max(100).optional(),
+  materiales_previstos: z.array(z.object({
+    codigo: z.string().trim().min(1).max(160),
+    cantidad: z.number().positive().max(1e12),
+  })).max(50).optional(),
 });
 
 export const obraSchema = z.object({
@@ -20,6 +30,7 @@ export const obraSchema = z.object({
   estado: z.literal("En proceso").optional()
 });
 export const actualizarObraSchema = z.object({
+  prioridad: z.enum(['Alta', 'Normal', 'Baja']).optional(),
   avance: z.number().int().min(0).max(100).optional(),
   estado: z.enum(["En proceso", "Finalizada", "Suspendida", "Cancelada", "Cierre comercial"]).optional(),
   tecnico_id: z.string().trim().min(1).max(160).optional(),

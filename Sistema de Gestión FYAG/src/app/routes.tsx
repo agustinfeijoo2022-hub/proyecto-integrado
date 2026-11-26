@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react"
 import { Navigate, Outlet, createBrowserRouter } from "react-router-dom"
+import PortadaEmpresa from "@/pages/PortadaEmpresa"
 import AppLayout from "@/layouts/AppLayout"
 
 const LoginPage = lazy(() => import("@/pages/LoginPage"))
@@ -15,6 +16,8 @@ const CollectionsPage = lazy(() => import("@/pages/CollectionsPage"))
 const ReportsPage = lazy(() => import("@/pages/ReportsPage"))
 const UsersPage = lazy(() => import("@/pages/UsersPage"))
 const SolicitudesPage = lazy(() => import("@/pages/SolicitudesPage"))
+const SolicitudesPresupuestoPage = lazy(() => import("@/pages/SolicitudesPresupuestoPage"))
+const NotificacionesPage = lazy(() => import("@/pages/NotificacionesPage"))
 const MisObrasPage = lazy(() => import("@/pages/MisObrasPage"))
 
 import { useAppStore } from "@/store/useAppStore"
@@ -89,18 +92,18 @@ function Inicio() {
 }
 
 export const router = createBrowserRouter([
+  { path: "/", element: <PortadaEmpresa /> },
+  { path: "/login", element: <PortadaEmpresa /> },
   {
     element: <Sesion />,
     children: [
-      // 1. RUTA RAÍZ: Redirige al login por defecto si no hay sesión
-      { path: "/", element: <Inicio /> },
-
+      
       // 2. RUTA DE LOGIN
-      { path: "/login", element: <LoginPage /> },
+      { path: "/acceso", element: <LoginPage /> },
 
       // 3. RUTAS PROTEGIDAS (todo lo que está debajo de /app)
       {
-        path: "/app",
+        path: "/app", 
         element: (
           <RutaProtegida>
             <AppLayout />
@@ -121,10 +124,12 @@ export const router = createBrowserRouter([
           { path: "facturacion", element: <RutaProtegida roles={permisos.facturacion}><CollectionsPage facturacion /></RutaProtegida> },
           { path: "cobranza", element: <RutaProtegida roles={permisos.cobranza}><CollectionsPage /></RutaProtegida> },
           { path: "reportes", element: <RutaProtegida roles={permisos.reportes}><ReportsPage /></RutaProtegida> },
+          { path: "solicitudes-presupuesto", element: <RutaProtegida roles={permisos["solicitudes-presupuesto"]}><SolicitudesPresupuestoPage /></RutaProtegida> },
+          { path: "notificaciones", element: <RutaProtegida roles={permisos.notificaciones}><NotificacionesPage /></RutaProtegida> },
           { path: "usuarios", element: <RutaProtegida roles={permisos.usuarios}><UsersPage /></RutaProtegida> },
         ],
       },
-
+      
       // 4. CUALQUIER OTRA RUTA: Redirige al inicio (que a su vez va al login)
       { path: "*", element: <Navigate to="/" replace /> },
     ],

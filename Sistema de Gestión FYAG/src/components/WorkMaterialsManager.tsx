@@ -31,7 +31,7 @@ export default function WorkMaterialsManager({ obraId, catalogo, onMovimiento }:
   const [guardando, setGuardando] = useState(false);
   const [cantidadSobrante, setCantidadSobrante] = useState("");
   const [articuloSobrante, setArticuloSobrante] = useState("");
-
+  
   const [articuloSolicitud, setArticuloSolicitud] = useState("");
   const [cantidadSolicitud, setCantidadSolicitud] = useState("");
 

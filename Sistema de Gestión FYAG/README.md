@@ -22,7 +22,7 @@ PORT=3001
 FRONTEND_ORIGIN=http://localhost:8443
 VITE_API_URL=http://localhost:3001/api
 MONGODB_URI=mongodb://127.0.0.1:27017/fyag_logs
-DATABASE_URL=postgresql://USUARIO:TU_CONTRASENA@127.0.0.1:5432/fyag_db
+DATABASE_URL=postgresql://postgres:TU_CLAVE_POSTGRES@127.0.0.1:5432/fyag_db
 COOKIE_SECURE=false
 FYAG_GERENCIA_PASSWORD=
 FYAG_SUPERVISOR_PASSWORD=
@@ -169,4 +169,6 @@ Crea una base temporal `fyag_verificacion_*`, verifica login de los cuatro roles
 - **Sesión no funciona:** no mezcles localhost y 127.0.0.1 en las URLs del navegador; COOKIE_SECURE debe ser false en HTTP.
 - **Artículo duplicado:** el servidor devuelve 409. Si tu base ya contiene códigos repetidos, corrígelos antes de crear el índice; el proyecto no elimina tus datos.
 
-Para levantar PostgreSQL con Docker Compose, define POSTGRES_PASSWORD en .env y usa la misma contraseña en DATABASE_URL.
+## Portada y acceso
+
+La aplicación abre en la portada de FYAG. El botón **Iniciar sesión** lleva al formulario de acceso con cuenta de trabajo. En el menú de la aplicación, el Centro de ayuda reúne el recorrido por pantalla, preguntas frecuentes y el flujo por perfil.

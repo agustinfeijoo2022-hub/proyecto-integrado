@@ -1,3 +1,5 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
+import PageHeader from "@/components/PageHeader";
 import { useState, useEffect } from "react";
 import { Download, PackageOpen, Package, Plus, Search, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,19 +73,13 @@ export default function CatalogoPage() {
 
   return (
     <div className="space-y-6">
-      <header className="relative overflow-hidden rounded-3xl border border-teal-200 bg-teal-50 px-6 py-8 dark:border-teal-900 dark:bg-teal-950/50 sm:px-9">
-        <Package className="pointer-events-none absolute -right-5 -top-7 hidden size-48 -rotate-12 text-teal-700/5 dark:text-teal-300/10 sm:block" aria-hidden="true" />
-        <div className="relative flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-teal-950 dark:text-teal-50">Catálogo de productos</h1>
-            <p className="mt-2 text-sm text-teal-800 dark:text-teal-200">Consulta códigos, unidades y existencias por artículo.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+      <PageHeader area="bodega" title="Catálogo de productos" actions={
+        <>
             {(rol === "Finanzas" || rol === "Encargado de Bodega") && (
               <>
                 <Button variant="outline"
                   onClick={() => void exportar("excel")}
-                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50">
+                >
                   <FileSpreadsheet className="size-4 mr-1" /> Excel
                 </Button>
                 <Button variant="outline"
@@ -108,10 +104,10 @@ export default function CatalogoPage() {
                 </DialogContent>
               </Dialog>
             )}
-          </div>
-        </div>
-      </header>
+        </>
+      } />
 
+      <PuntoGuia id="buscar-productos" />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <label className="min-w-0 flex-1 text-sm font-medium">
           Buscar producto
@@ -128,6 +124,7 @@ export default function CatalogoPage() {
           </select>
         </label>
       </div>
+      <PuntoGuia id="resultados-productos" />
       {cargando ? <p role="status" className="text-sm text-muted-foreground">Cargando catálogo…</p> : errorCarga ? (
         <p role="alert" className="fyag-error">{errorCarga} <button className="underline" onClick={() => setIntento(i => i + 1)}>Reintentar</button></p>
       ) : !visibles.length ? (

@@ -1,3 +1,4 @@
+import { PuntoGuia } from "@/components/GuiaDeUso";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
@@ -45,7 +46,8 @@ export default function SolicitudesPage() {
 
   return (
     <div>
-      <PageHeader area="seguimiento" title="Solicitudes de materiales" description="Revisa las solicitudes de los técnicos. Aprobar entrega la cantidad solicitada desde el stock de bodega." />
+      <PageHeader area="bodega" title="Solicitudes de materiales" />
+      <PuntoGuia id="lista-solicitudes" />
       <Card className="overflow-x-auto">
         {error ? <p role="alert" className="p-6">{error}</p> : cargando ? <p role="status" className="p-6">Cargando solicitudes…</p> :
           solicitudes.length === 0 ? <p className="p-6">No hay solicitudes registradas.</p> : (
