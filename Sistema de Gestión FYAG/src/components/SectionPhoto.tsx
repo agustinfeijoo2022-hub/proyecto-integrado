@@ -1,58 +1,52 @@
-import { useLocation } from "react-router-dom";
 
-const fotosPorSeccion: Readonly<Record<string, number>> = {
-  catalogo: 11678431,
-  compras: 4487383,
-  recepcion: 34585120,
-  obras: 40607626,
-  "mis-obras": 5463580,
-  solicitudes: 13804490,
-  "solicitudes-presupuesto": 4342126,
-  presupuestos: 33175651,
-  clientes: 8730120,
-  facturacion: 8297220,
-  cobranza: 7651738,
-  reportes: 8062355,
-  usuarios: 5561916,
-  notificaciones: 4476635,
-};
+const puntos = [
+  [8, 21], [16, 67], [24, 39], [31, 84], [39, 15], [46, 63],
+  [55, 31], [60, 77], [67, 18], [73, 49], [81, 70], [86, 30],
+  [91, 56], [95, 14], [96, 87],
+];
 
-const encuadres: Partial<Record<number, string>> = {
-  28726413: "48% 49%",
-  29786116: "50% 48%",
-  11678431: "50% 61%",
-  40607626: "50% 47%",
-  32497161: "54% 43%",
-  34585120: "54% 53%",
-  33175651: "50% 62%",
-};
-
-function pexels(id: number, ancho: number) {
-  return `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=${ancho}`;
+export function ManagementBackdrop({ portada = false }: { portada?: boolean }) {
+  return (
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-0 -z-10 overflow-hidden ${portada ? "text-emerald-300" : "text-emerald-700 dark:text-emerald-300"}`}
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_82%_32%,currentColor,transparent_66%)] opacity-15" />
+      <div className="absolute inset-0 opacity-15 [background-image:linear-gradient(currentColor_1px,transparent_1px),linear-gradient(90deg,currentColor_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(ellipse_at_right,black,transparent_82%)]" />
+      {puntos.map(([x, y], index) => (
+        <span
+          key={x}
+          className="absolute grid size-2 place-items-center"
+          style={{ left: `${x}%`, top: `${y}%` }}
+        >
+          <span className="absolute size-full rounded-full bg-current opacity-60" />
+          <span
+            className="absolute size-full rounded-full bg-current opacity-40 motion-safe:animate-ping"
+            style={{ animationDuration: `${5 + index % 4}s`, animationDelay: `-${index * 0.7}s` }}
+          />
+        </span>
+      ))}
+    </div>
+  );
 }
 
-export default function SectionPhoto({ acceso = false, gerencia = false }: {
-  acceso?: boolean;
-  gerencia?: boolean;
-}) {
-  const { pathname } = useLocation();
-  const [, , seccion, detalle] = pathname.split("/");
-  const id = acceso ? 28726413
-    : seccion === "dashboard" ? (gerencia ? 7857566 : 29786116)
-    : seccion === "obras" && detalle ? 32497161
-    : fotosPorSeccion[seccion];
+const foto = "https://images.pexels.com/photos/28726413/pexels-photo-28726413.jpeg?auto=compress&cs=tinysrgb";
 
-  if (!id) return null;
-
+export default function SectionPhoto() {
   return (
-    <div className={acceso ? "fyag-photo-frame fyag-photo-login" : "fyag-photo-frame"} aria-hidden="true">
-      <img key={id} className="fyag-photo" alt="" referrerPolicy="no-referrer" decoding="async"
-        style={{ objectPosition: encuadres[id] }}
-        src={pexels(id, 800)}
-        srcSet={`${pexels(id, 480)} 480w, ${pexels(id, 800)} 800w, ${pexels(id, 1280)} 1280w`}
-        sizes={acceso ? "(min-width: 1024px) 440px, (min-width: 768px) 44vw, 100vw" : "(min-width: 1440px) 576px, (min-width: 1024px) 42vw, 100vw"}
+    <div className="fyag-photo-frame fyag-photo-login" aria-hidden="true">
+      <img
+        className="fyag-photo"
+        alt=""
+        referrerPolicy="no-referrer"
+        decoding="async"
+        style={{ objectPosition: "48% 49%" }}
+        src={`${foto}&w=800`}
+        srcSet={`${foto}&w=480 480w, ${foto}&w=800 800w, ${foto}&w=1280 1280w`}
+        sizes="(min-width: 1024px) 440px, (min-width: 768px) 44vw, 100vw"
         onError={event => { event.currentTarget.hidden = true; }}
       />
     </div>
   );
 }
+
