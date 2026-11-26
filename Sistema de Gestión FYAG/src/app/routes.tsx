@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react"
 import { Navigate, Outlet, createBrowserRouter } from "react-router-dom"
 import PortadaEmpresa from "@/pages/PortadaEmpresa"
+import PresentacionPage from "@/pages/PresentacionPage"
 import AppLayout from "@/layouts/AppLayout"
 
 const LoginPage = lazy(() => import("@/pages/LoginPage"))
@@ -93,7 +94,7 @@ function Inicio() {
 
 export const router = createBrowserRouter([
   { path: "/", element: <PortadaEmpresa /> },
-  { path: "/login", element: <PortadaEmpresa /> },
+  { path: "/login", element: <PresentacionPage /> },
   {
     element: <Sesion />,
     children: [
