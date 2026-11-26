@@ -1,10 +1,6 @@
 import { ArrowRight, Boxes, PackageCheck, Snowflake, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const fotos = [
-  { id: 28726413, posicion: "center 48%" },
-  { id: 32497161, posicion: "center 45%" },
-];
+import { ManagementBackdrop } from "@/components/SectionPhoto";
 
 const servicios = [
   { titulo: "Refrigeración industrial", icono: Snowflake },
@@ -14,15 +10,8 @@ const servicios = [
 
 export default function PortadaEmpresa() {
   return (
-    <main className="fyag-portada relative isolate flex min-h-svh flex-col overflow-hidden bg-[#0a2018] text-white">
-      <div className="absolute inset-0 -z-20 overflow-hidden" aria-hidden="true">
-        {fotos.map(foto => (
-          <img key={foto.id} className="fyag-portada-foto absolute inset-0 size-full object-cover"
-            alt="" referrerPolicy="no-referrer" decoding="async" style={{ objectPosition: foto.posicion }}
-            src={`https://images.pexels.com/photos/${foto.id}/pexels-photo-${foto.id}.jpeg?auto=compress&cs=tinysrgb&w=1600`} />
-        ))}
-      </div>
-      <div aria-hidden="true" className="fyag-portada-sombra absolute inset-0 -z-10" />
+    <main className="relative isolate flex min-h-svh flex-col overflow-hidden bg-[#0a2018] text-white">
+      <ManagementBackdrop portada />
       <header className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-6 sm:px-10">
         <div className="flex items-center gap-3 font-semibold tracking-wide">
           <span className="grid size-10 place-items-center rounded-xl border border-white/30 bg-white/10">

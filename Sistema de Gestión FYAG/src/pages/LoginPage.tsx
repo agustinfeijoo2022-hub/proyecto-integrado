@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { Navigate } from "react-router-dom"
 import { ArrowRight, Boxes, LockKeyhole, Mail } from "lucide-react"
-import SectionPhoto from "@/components/SectionPhoto"
+import SectionPhoto, { ManagementBackdrop } from "@/components/SectionPhoto"
 import ThemeToggle from "@/components/ThemeToggle"
 import { useAppStore } from "@/store/useAppStore"
 import { api, mensajeError } from "@/lib/api"
@@ -42,11 +42,12 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="fyag-workspace relative grid min-h-screen place-items-center bg-app px-4 py-10 text-foreground sm:px-8">
+    <main className="fyag-workspace relative isolate grid min-h-screen place-items-center bg-app px-4 py-10 text-foreground sm:px-8">
+      <ManagementBackdrop />
       <div className="absolute right-4 top-4 sm:right-8" aria-label="Tema de la interfaz"><ThemeToggle /></div>
       <div className="mt-8 grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border bg-card md:grid-cols-[minmax(0,.85fr)_minmax(0,1.15fr)]">
         <section className="relative isolate flex min-w-0 flex-col justify-between overflow-hidden bg-[#153d30] px-6 py-7 text-white dark:bg-[#102a22] sm:px-10 md:min-h-[490px] md:py-11">
-          <SectionPhoto acceso />
+          <SectionPhoto />
           <div className="flex items-center gap-3">
             <span className="grid size-10 place-items-center rounded-xl bg-white/10 text-emerald-100">
               <Boxes className="size-5" aria-hidden="true" />
