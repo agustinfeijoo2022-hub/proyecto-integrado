@@ -2,7 +2,6 @@ services:
   - type: web
     name: fyag-backend
     runtime: docker
-    rootDir: "Sistema de Gestión FYAG"
     healthCheckPath: /api/status
     envVars:
       - key: SERVIR_FRONTEND
