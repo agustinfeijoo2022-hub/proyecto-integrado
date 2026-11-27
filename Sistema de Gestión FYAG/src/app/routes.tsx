@@ -23,7 +23,6 @@ const MisObrasPage = lazy(() => import("@/pages/MisObrasPage"))
 
 import { useAppStore } from "@/store/useAppStore"
 import { api, ApiError, mensajeError } from "@/lib/api"
-import { usuarioPresentacion } from "@/lib/presentacion"
 import { inicioPorRol, permisos, destinoSiDenegado } from "./access"
 import type { Rol, Usuario } from "@/types"
 
@@ -124,11 +123,6 @@ export const router = createBrowserRouter([
         path: "/app", 
         element: (
           <RutaProtegida>
-            {usuarioPresentacion && (
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-b border-border bg-card px-4 py-2 text-sm text-muted-foreground">
-                <span>Presentación · Datos de muestra editables en este navegador</span>
-              </div>
-            )}
             <AppLayout />
           </RutaProtegida>
         ),
