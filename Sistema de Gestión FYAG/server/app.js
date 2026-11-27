@@ -33,7 +33,7 @@ export function createApp(Articulo, env = process.env, auditoria, pgPool) {
   app.use(helmet()) 
   app.disable("x-powered-by")
   
-  const origin = env.FRONTEND_ORIGIN || "http://localhost:8443"
+  const origins = (env.FRONTEND_ORIGIN || "http://localhost:8443").split(",").map(value => value.trim()).filter(Boolean)
   const secure = env.COOKIE_SECURE === "true"
   const sesiones = new Map()
   const intentos = new Map()
@@ -54,9 +54,9 @@ export function createApp(Articulo, env = process.env, auditoria, pgPool) {
 
   const cookieOptions = { httpOnly: true, sameSite: "lax", secure, path: "/" }
 
-  app.use(cors({ origin, credentials: true }))
+  app.use(cors({ origin: origins, credentials: true }))
   app.use((req, res, next) => {
-    if (!["GET", "HEAD", "OPTIONS"].includes(req.method) && req.get("origin") !== origin)
+    if (!["GET", "HEAD", "OPTIONS"].includes(req.method) && !origins.includes(req.get("origin")))
       return next(new AppError("Origen no permitido.", 403))
     next()
   })
