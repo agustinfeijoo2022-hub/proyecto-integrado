@@ -47,7 +47,7 @@ type Aviso = { id: number; rol: Usuario["rol"]; tipo: "cotizacion" | "presupuest
 type Solicitud = { id: string; codigo: string; nombreArticulo: string; obraId: number; tecnicoId: string; cantidad: number; fecha: string; estado: string };
 type Material = { codigo: string; nombre: string; unidad: string; entregados: number; utilizados: number; devueltos: number; saldo: number };
 
-const claveDatos = "fyag:presentacion-datos-v1";
+const claveDatos = "fyag:presentacion-datos-v2";
 const inicial = {
   clientes, presupuestos, obras, articulos, compras, facturas,
   avisos: [] as Aviso[], solicitudes: [] as Solicitud[],
@@ -55,9 +55,120 @@ const inicial = {
   auditoria: [{ id: 1, accion: "Aprobación de presupuesto", fecha, usuario: "Gerencia FYAG", rol: "Gerencia", recurso: "PRE-104", http_status: 200 }],
 };
 
+
+const casos = [
+  { nombre: "Cambio de evaporador en cámara de fruta", cliente: "Frutícola Cordillera", tipo: "Proyecto", prioridad: "Alta", estado: "En proceso", avance: 35, monto: 1850000, pagado: 550000 },
+  { nombre: "Calibración de sensores de temperatura", cliente: "Centro Logístico Los Arrayanes", tipo: "Mantención", prioridad: "Normal", estado: "En proceso", avance: 70, monto: 380000, pagado: 0 },
+  { nombre: "Sellado de puertas en cámara de despacho", cliente: "Distribuidora Puerto Claro", tipo: "Mejoras", prioridad: "Baja", estado: "En proceso", avance: 15, monto: 620000, pagado: 0 },
+  { nombre: "Reposición de aislación en línea de succión", cliente: "Frutícola Cordillera", tipo: "Mantención", prioridad: "Normal", estado: "Finalizada", avance: 100, monto: 740000, pagado: 740000 },
+  { nombre: "Diagnóstico de condensadora industrial", cliente: "Centro Logístico Los Arrayanes", tipo: "Emergencia", prioridad: "Alta", estado: "Suspendida", avance: 25, monto: 485000, pagado: 0 },
+  { nombre: "Mantención preventiva de tablero eléctrico", cliente: "Distribuidora Puerto Claro", tipo: "Mantención", prioridad: "Baja", estado: "Finalizada", avance: 100, monto: 510000, pagado: 510000 },
+] as const;
+
+const nuevosClientes: Cliente[] = [...new Set(casos.map(caso => caso.cliente))].map((razonSocial, i) => ({
+  id: `muestra-cliente-${i + 1}`, razonSocial, rut: "00.000.000-0",
+  contacto: "Coordinación de operaciones", email: `cliente-${i + 1}@example.invalid`,
+}));
+
+const nuevasObras: ObraDB[] = casos.map((caso, i) => {
+  const cliente = nuevosClientes.find(item => item.razonSocial === caso.cliente)!;
+  return {
+    id: 26001 + i, codigo: `OB-${41 + i}`, nombre: caso.nombre, cliente_id: cliente.id, cliente_nombre: cliente.razonSocial,
+    presupuesto_id: 26101 + i, presupuesto_folio: `PRE-${121 + i}`, tipo: caso.tipo, tecnico_id: "t1",
+    inicio: `2026-11-${14 + i}`, avance: caso.avance, estado: caso.estado, prioridad: caso.prioridad,
+    instrucciones: { trabajo: caso.nombre, alcance: "Verificar el equipo, registrar el trabajo realizado y revisar los materiales usados." },
+    historial: [{ fecha, detalle: "Obra asignada a Técnico FYAG." }],
+  };
+});
+
+const nuevosPresupuestos: PresupuestoDB[] = nuevasObras.map((obra, i) => ({
+  id: 26101 + i, folio: obra.presupuesto_folio!, cliente_id: obra.cliente_id, cliente_nombre: obra.cliente_nombre,
+  fecha: obra.inicio, tipo: obra.tipo, total: casos[i].monto, estado: "Aprobado", instrucciones: obra.instrucciones,
+  partidas: [{ descripcion: obra.nombre, cantidad: 1, precioUnitario: casos[i].monto }],
+}));
+nuevosPresupuestos.push(
+  { id: 26107, folio: "PRE-127", cliente_id: nuevosClientes[0].id, cliente_nombre: nuevosClientes[0].razonSocial, fecha, tipo: "Climatización", total: 890000, estado: "Enviado" },
+  { id: 26108, folio: "PRE-128", cliente_id: nuevosClientes[1].id, cliente_nombre: nuevosClientes[1].razonSocial, fecha, tipo: "Mantención", total: 460000, estado: "Rechazado" },
+  { id: 26109, folio: "PRE-129", cliente_id: nuevosClientes[2].id, cliente_nombre: nuevosClientes[2].razonSocial, fecha, tipo: "Mejoras", total: 560000, estado: "Aprobado" },
+);
+
+const nuevosArticulos = [
+  { _id: "muestra-a4", codigo: "REF-004", nombre: "Válvula de expansión", categoria: "Refrigeración", stock: 5, stockCritico: 2, unidad: "Unidad" },
+  { _id: "muestra-a5", codigo: "ELE-007", nombre: "Contactor trifásico", categoria: "Material eléctrico", stock: 2, stockCritico: 3, unidad: "Unidad" },
+  { _id: "muestra-a6", codigo: "REF-008", nombre: "Visor de líquido", categoria: "Refrigeración", stock: 11, stockCritico: 3, unidad: "Unidad" },
+  { _id: "muestra-a7", codigo: "AIS-005", nombre: "Burlete para puerta frigorífica", categoria: "Aislamiento", stock: 18, stockCritico: 5, unidad: "Metro" },
+  { _id: "muestra-a8", codigo: "CTL-006", nombre: "Termostato digital", categoria: "Control", stock: 0, stockCritico: 2, unidad: "Unidad" },
+];
+
+const nuevasCompras = nuevosArticulos.map((a, i) => {
+  const monto = [245000, 159000, 114000, 96000, 198000][i];
+  const iva = Math.round(monto * 0.19);
+  return {
+    id: `muestra-compra-${i + 1}`, articuloId: a._id, codigoArticulo: a.codigo, nombreArticulo: a.nombre,
+    unidad: a.unidad, proveedor: i % 2 ? "Insumos Puerto Claro" : "Suministros Río Sur",
+    cantidad: [5, 6, 12, 18, 4][i], monto, descuento: 0, neto: monto, iva, total: monto + iva,
+    fecha: `2026-11-${19 + i}T12:00:00.000Z`, recibida: i === 2 || i === 3,
+  };
+});
+
+const nuevasFacturas = nuevasObras.map((obra, i) => {
+  const { monto, pagado } = casos[i];
+  return {
+    id: 26201 + i, folio: `FAC-${121 + i}`, obra_id: obra.id, obra_codigo: obra.codigo, obra_nombre: obra.nombre,
+    obra_estado: obra.estado, cliente_nombre: obra.cliente_nombre!, fecha, emision: obra.inicio,
+    vencimiento: "2026-12-15", monto, total: monto, pagado, saldo: monto - pagado,
+    estado: pagado === monto ? "Pagada" : pagado ? "Parcial" : "Pendiente",
+  };
+});
+
+const nuevosAvisos: Aviso[] = [
+  { rol: "Gerencia", tipo: "presupuesto", titulo: "Presupuesto por revisar", mensaje: "PRE-127 · Climatización", presupuesto_id: 26107 },
+  { rol: "Finanzas", tipo: "cotizacion", titulo: "Revisión de cámara de despacho", mensaje: "Cotizar diagnóstico y mantención de puertas frigoríficas.", cliente_id: nuevosClientes[2].id, instrucciones: { trabajo: "Revisión de cámara de despacho", alcance: "Diagnosticar sellos, comprobar temperatura y cotizar la mantención de puertas." } },
+  { rol: "Encargado de Bodega", tipo: "presupuesto", titulo: "Presupuesto aprobado", mensaje: "PRE-129 · Mejoras. Disponible para crear una obra." },
+  { rol: "Técnico", tipo: "obra", titulo: "Nueva obra de prioridad alta", mensaje: nuevasObras[0].nombre, obra_id: nuevasObras[0].id },
+].map((a, i) => ({ id: 26301 + i, cliente_id: null, obra_id: null, presupuesto_id: null, creada_en: fecha, leida_en: null, ...a } as Aviso));
+
+const nuevasSolicitudes: Solicitud[] = [
+  { id: "muestra-s1", codigo: "CTL-001", nombreArticulo: "Sonda de temperatura", obraId: nuevasObras[1].id, tecnicoId: "t1", cantidad: 2, fecha, estado: "Pendiente" },
+  { id: "muestra-s2", codigo: "AIS-005", nombreArticulo: "Burlete para puerta frigorífica", obraId: nuevasObras[2].id, tecnicoId: "t1", cantidad: 4, fecha, estado: "Aprobada" },
+];
+
+const nuevosMateriales = Object.fromEntries(nuevasObras.map((obra, i) => {
+  const a = nuevosArticulos[i % nuevosArticulos.length];
+  const utilizados = obra.estado === "Finalizada" ? 3 : 1;
+  return [obra.id, [{ codigo: a.codigo, nombre: a.nombre, unidad: a.unidad, entregados: 3, utilizados, devueltos: 0, saldo: 3 - utilizados }]];
+}));
+
+const ampliacion = {
+  clientes: nuevosClientes, presupuestos: nuevosPresupuestos, obras: nuevasObras, articulos: nuevosArticulos,
+  compras: nuevasCompras, facturas: nuevasFacturas, avisos: nuevosAvisos, solicitudes: nuevasSolicitudes,
+  auditoria: nuevasObras.map((obra, i) => ({ id: 26401 + i, accion: "Asignación de obra", fecha, usuario: "Encargado de Bodega", rol: "Encargado de Bodega", recurso: obra.codigo, http_status: 200 })),
+};
+
+function agregarMuestras<T, K>(actuales: T[], nuevos: T[], obtenerClave: (registro: T) => K): T[] {
+  const claves = new Set(actuales.map(obtenerClave));
+  return [...actuales, ...nuevos.filter(registro => !claves.has(obtenerClave(registro)))];
+}
+
 function leerDatos(): typeof inicial {
   const guardados = localStorage.getItem(claveDatos);
-  return guardados ? JSON.parse(guardados) as typeof inicial : structuredClone(inicial);
+  if (guardados) return JSON.parse(guardados) as typeof inicial;
+  const anterior = localStorage.getItem("fyag:presentacion-datos-v1");
+  const base = anterior ? JSON.parse(anterior) as typeof inicial : structuredClone(inicial);
+  const datos = {
+    clientes: agregarMuestras(base.clientes, ampliacion.clientes, x => x.id),
+    presupuestos: agregarMuestras(base.presupuestos, ampliacion.presupuestos, x => x.id),
+    obras: agregarMuestras(base.obras, ampliacion.obras, x => x.id),
+    articulos: agregarMuestras(base.articulos, ampliacion.articulos, x => x.codigo),
+    compras: agregarMuestras(base.compras, ampliacion.compras, x => x.id),
+    facturas: agregarMuestras(base.facturas, ampliacion.facturas, x => x.id),
+    avisos: agregarMuestras(base.avisos, ampliacion.avisos, x => x.id),
+    solicitudes: agregarMuestras(base.solicitudes, ampliacion.solicitudes, x => x.id),
+    auditoria: agregarMuestras(base.auditoria, ampliacion.auditoria, x => x.id),
+    materiales: { ...nuevosMateriales, ...base.materiales },
+  };
+  localStorage.setItem(claveDatos, JSON.stringify(datos));
+  return datos;
 }
 
 function buscar<T>(elemento: T | undefined, mensaje = "No se encontró el registro de presentación."): T {
