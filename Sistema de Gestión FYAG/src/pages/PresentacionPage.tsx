@@ -19,8 +19,6 @@ const perfiles = [
   },
 ];
 
-const enlace = "inline-flex min-h-11 items-center gap-2 rounded-lg font-medium text-foreground underline underline-offset-4 hover:text-primary";
-
 export default function PresentacionPage() {
   return (
     <main className="fyag-workspace relative isolate grid min-h-svh place-items-center bg-app px-4 py-16 text-foreground sm:px-8">
@@ -49,7 +47,6 @@ export default function PresentacionPage() {
               </li>
             ))}
           </ul>
-          <Link reloadDocument to="/acceso" className={`${enlace} mt-3`}>Acceso con cuenta de trabajo</Link>
         </section>
       </div>
 
