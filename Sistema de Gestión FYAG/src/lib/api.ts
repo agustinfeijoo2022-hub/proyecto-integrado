@@ -1,5 +1,4 @@
 import type { CambiosObra, ObraDB, PresupuestoDB } from "@/types";
-import { respuestaPresentacion, usuarioPresentacion } from "@/lib/presentacion";
 
 export interface Articulo {
   _id: string;
@@ -21,10 +20,6 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  if (usuarioPresentacion) {
-    options.signal?.throwIfAborted();
-    return respuestaPresentacion(path, (options.method ?? "GET").toUpperCase(), options.body) as T;
-  }
   const headers = new Headers(options.headers);
   if (options.body) headers.set("Content-Type", "application/json");
 
